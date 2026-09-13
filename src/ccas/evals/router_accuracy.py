@@ -1,7 +1,7 @@
 """Does the router assign the right intent? (docs/future-scoped-work.md 9.18)
 
 Until this runs, "the chat channel works" means "it routes without crashing", which is a
-different claim from "it routes correctly" and much weaker than it sounds.
+different statement from "it routes correctly", and much weaker than it sounds.
 
 Two rules are enforced here rather than left to the caller, because both have already
 caught this project out once.
