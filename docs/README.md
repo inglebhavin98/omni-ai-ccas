@@ -7,6 +7,7 @@
 | [`design-doc.md`](design-doc.md) | How does it fit together? What flows through it, and why is it built this way? |
 | [`adr/`](adr/README.md) | Why was this chosen over the alternative? |
 | [`future-scoped-work.md`](future-scoped-work.md) | What was deliberately left out, and what would bring it back? |
+| [`resume-here.md`](resume-here.md) | Point-in-time: what to do first next session. Not maintained — delete when stale. |
 
 `CLAUDE.md` at the repo root is the binding rulebook. These documents explain and
 operationalise it; where they disagree, `CLAUDE.md` wins.
