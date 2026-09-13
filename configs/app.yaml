@@ -1,0 +1,23 @@
+# Runtime wiring. Secrets live in .env, never here.
+default_domain: retail
+domains_dir: ./domains
+
+session:
+  max_turns: 25
+  no_input_timeout_ms: 6000
+  max_no_input: 3
+  max_no_match: 3
+
+voice:
+  transport: livekit          # livekit | mock_file
+  sample_rate: 16000
+  barge_in_enabled: true
+  dtmf_enabled: true
+
+evals:
+  judge_sample_rate: 0.05     # 5% async sampling -- see CLAUDE.md Rule 5
+  parity_agreement_threshold: 0.85
+
+observability:
+  service_name: ai-ccas
+  audit_log_path: ./data/audit
