@@ -1,3 +1,3 @@
-"""ai-ccas voice.tts."""
+"""omni-ai-ccas voice.tts."""
 
 from __future__ import annotations

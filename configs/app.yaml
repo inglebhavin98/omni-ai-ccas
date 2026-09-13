@@ -19,5 +19,5 @@ evals:
   parity_agreement_threshold: 0.85
 
 observability:
-  service_name: ai-ccas
+  service_name: omni-ai-ccas
   audit_log_path: ./data/audit

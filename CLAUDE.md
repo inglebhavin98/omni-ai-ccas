@@ -1,11 +1,11 @@
 # CLAUDE.md
 
-Governance rulebook for `ai-ccas`. These rules are binding. When a request conflicts
+Governance rulebook for `omni-ai-ccas`. These rules are binding. When a request conflicts
 with a rule here, say so and stop — do not silently comply.
 
 ## Project
 
-`ai-ccas` — a domain-agnostic, AI-native Customer Care Experience Platform built to
+`omni-ai-ccas` — a domain-agnostic, AI-native Customer Care Experience Platform built to
 fully replace legacy IVR/CCaaS stacks (Genesys, Cisco). The same core serves retail,
 healthcare, banking, telecom, utilities, and SaaS by loading a different domain pack.
 

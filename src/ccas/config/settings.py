@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     llm_default_provider: str = "anthropic"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_api_key: SecretStr | None = Field(default=None, alias="OPENROUTER_API_KEY")
-    openrouter_referer: str = "https://github.com/ai-ccas"
-    openrouter_title: str = "ai-ccas"
+    openrouter_referer: str = "https://github.com/inglebhavin98/omni-ai-ccas"
+    openrouter_title: str = "omni-ai-ccas"
     """OpenRouter asks callers to identify themselves; these become HTTP-Referer and
     X-Title, which is how a free-tier account is attributed rather than rate-limited."""
     vllm_base_url: str = "http://localhost:8000/v1"

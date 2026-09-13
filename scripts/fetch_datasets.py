@@ -258,7 +258,8 @@ def build_parser() -> argparse.ArgumentParser:
 async def run(args: argparse.Namespace) -> int:
     wanted = CORPORA if (args.all or not args.corpus) else tuple(dict.fromkeys(args.corpus))
     fetchers = {"aixblock": fetch_aixblock, "bitext": fetch_bitext, "natcs": fetch_natcs}
-    async with httpx.AsyncClient(timeout=_TIMEOUT, headers={"user-agent": "ai-ccas"}) as client:
+    headers = {"user-agent": "omni-ai-ccas"}
+    async with httpx.AsyncClient(timeout=_TIMEOUT, headers=headers) as client:
         for name in wanted:
             print(f"\n{name}")
             try:

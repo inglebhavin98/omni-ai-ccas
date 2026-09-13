@@ -17,7 +17,7 @@ Status: `deferred` (decided, not scheduled) · `blocked` (waiting on something n
 |---|---|---|---|---|
 | 1.1 | **SIP / PSTN ingress** via LiveKit SIP or FreeSWITCH | deferred | Needs a trunk provider, carrier credentials and per-minute spend before a single measurement. The 800 ms question is answerable over WebRTC. (ADR-0001) | Phase 5 latency numbers accepted; first pilot with real callers |
 | 1.2 | **RFC 2833 DTMF capture** at the gateway | deferred | Depends on 1.1. Modelled in the contracts already (`DtmfEvent`, `SlotSpec.dtmf_capturable`) so it is a missing driver, not a missing design | With 1.1 |
-| 1.3 | **Session Border Controller** for hybrid traffic splitting | deferred | Only needed once legacy and ai-ccas run concurrently | Migration phase 1 canary |
+| 1.3 | **Session Border Controller** for hybrid traffic splitting | deferred | Only needed once legacy and omni-ai-ccas run concurrently | Migration phase 1 canary |
 | 1.4 | **Dual-region SIP with automated failover** | deferred | 99.999% is a production target, not a PoC one | Production readiness review |
 | 1.6 | **LiveKit room loop** — the worker assembles a session around a connected transport but does not yet join a room | deferred | Needs a running livekit-server and the voice extra; the scripted driver exercises the same session end to end today | First real WebRTC call |
 | 1.7 | **Deepgram / Cartesia verified against live services** | deferred | Wire formats and re-chunking are pinned by tests; neither adapter has met its API | Credentials available |

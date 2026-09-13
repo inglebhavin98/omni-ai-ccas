@@ -1,3 +1,3 @@
-"""ai-ccas ingestion.adapters."""
+"""omni-ai-ccas ingestion.adapters."""
 
 from __future__ import annotations

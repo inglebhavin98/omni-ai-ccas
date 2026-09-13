@@ -18,13 +18,13 @@ from ccas.redaction.pipeline import RedactionMode, RedactionPipeline
 from ccas.redaction.policy import load_policy
 from ccas.redaction.regex_engine import RegexEngine
 
-#: Asserts the voice budget specifically -- frozen with it (ADR-0018).
-pytestmark = pytest.mark.voice
-
 REPO = Path(__file__).resolve().parents[2]
 BUDGET = load_budget(REPO / "configs" / "latency_budget.yaml")
 
-pytestmark = pytest.mark.latency
+#: Both markers, as a list. A second `pytestmark = ...` silently overwrites the first,
+#: which is how these ran in the default suite for a while after ADR-0018 froze voice.
+#: They assert the *voice* budget's slices, so they are frozen with it.
+pytestmark = [pytest.mark.voice, pytest.mark.latency]
 
 #: Representative of what an ASR emits mid-call: short, mixed, mostly clean.
 UTTERANCES = [

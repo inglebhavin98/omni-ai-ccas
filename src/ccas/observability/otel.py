@@ -21,7 +21,7 @@ def is_configured() -> bool:
 
 
 def configure_tracing(
-    service_name: str = "ai-ccas",
+    service_name: str = "omni-ai-ccas",
     exporter: SpanExporter | None = None,
     *,
     force: bool = False,

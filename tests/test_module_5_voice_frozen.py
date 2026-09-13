@@ -47,3 +47,21 @@ def test_voice_tests_still_exist() -> None:
 def test_the_freeze_is_documented_where_someone_would_look() -> None:
     assert "frozen" in (REPO / "CLAUDE.md").read_text().lower()
     assert (REPO / "docs" / "adr" / "0018-freeze-voice-pivot-to-chat.md").is_file()
+
+
+def test_no_voice_test_has_its_marker_clobbered() -> None:
+    """A second `pytestmark = ...` silently overwrites the first.
+
+    Both latency modules already had `pytestmark = pytest.mark.latency`, so the voice
+    marker appended below it never applied and those suites kept running in the default
+    selection after ADR-0018 froze voice. They only surfaced when an unrelated change made
+    the machine slow enough for a budget assertion to fail.
+    """
+    import re
+
+    offenders = []
+    for path in (REPO / "tests").rglob("test_*.py"):
+        assignments = re.findall(r"^pytestmark\s*=", path.read_text(), flags=re.M)
+        if len(assignments) > 1:
+            offenders.append(f"{path.relative_to(REPO)} ({len(assignments)})")
+    assert not offenders, f"a later pytestmark overwrites an earlier one: {offenders}"

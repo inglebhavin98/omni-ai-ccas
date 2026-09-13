@@ -1,4 +1,4 @@
-# ai-ccas
+# omni-ai-ccas
 
 A domain-agnostic, AI-native Customer Care Experience Platform built to fully replace
 legacy IVR/CCaaS stacks (Genesys, Cisco). The same core serves retail, healthcare,
@@ -78,6 +78,19 @@ Redaction runs in two modes (ADR-0007): **regex only on the call path** (111 µs
 inside the 3 ms slice) and **regex + local NER in batch** (7.0 ms) for anything stored,
 mined, or shown to a human. Zero leakage is enforced by contract validators and proved
 by a Hypothesis fuzz over generated identifiers.
+
+## A note on the history
+
+The git history is **reconstructed, not bisectable.** The commits group the work into the
+order it is best *read* -- contracts, then the layers that depend on them -- but the files
+were written interleaved, so intermediate commits do not pass their own tests. Only `HEAD`
+is green. `git bisect` will mislead you.
+
+What the messages are good for is the *why*: several commits reverse an earlier decision,
+and the ADR they cite explains what the evidence was. `fix(datasets): NatCS is supervision,
+not a trajectory` corrects a dataset role that was assigned backwards, and
+`feat(mining): mean-centre before clustering` carries an ADR that corrects its own headline
+after the number it quoted failed to survive a larger sample.
 
 ## Licence
 

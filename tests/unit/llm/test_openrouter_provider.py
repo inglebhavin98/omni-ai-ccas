@@ -113,14 +113,14 @@ def test_attribution_headers_are_sent() -> None:
     p = OpenRouterProvider(
         api_key="k",
         referer="https://example.test",
-        title="ai-ccas",
+        title="omni-ai-ccas",
         client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )
     import asyncio
 
     asyncio.get_event_loop_policy().new_event_loop().run_until_complete(p.complete(request()))
     assert seen["http-referer"] == "https://example.test"
-    assert seen["x-title"] == "ai-ccas"
+    assert seen["x-title"] == "omni-ai-ccas"
 
 
 # ------------------------------------------------------------------ responses

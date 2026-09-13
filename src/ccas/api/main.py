@@ -52,7 +52,7 @@ def build_app(manager: SessionManager | None = None) -> FastAPI:
         yield
 
     app = FastAPI(
-        title="ai-ccas workbench",
+        title="omni-ai-ccas workbench",
         version="0.1.0",
         description="Development console for the agentic mesh. Loopback only.",
         lifespan=lifespan,

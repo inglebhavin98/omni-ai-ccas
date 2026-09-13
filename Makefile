@@ -1,4 +1,4 @@
-# ai-ccas -- see CLAUDE.md for the rules these targets enforce.
+# omni-ai-ccas -- see CLAUDE.md for the rules these targets enforce.
 .DEFAULT_GOAL := help
 UV := uv
 

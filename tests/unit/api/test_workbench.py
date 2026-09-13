@@ -224,4 +224,4 @@ def test_the_prober_works_for_the_second_pack(bare_client: TestClient) -> None:
 def test_the_console_is_served(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "ai-ccas workbench" in response.text
+    assert "omni-ai-ccas workbench" in response.text

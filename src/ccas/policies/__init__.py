@@ -1,3 +1,3 @@
-"""ai-ccas policies."""
+"""omni-ai-ccas policies."""
 
 from __future__ import annotations

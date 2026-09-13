@@ -1,3 +1,3 @@
-"""ai-ccas copilot.crm."""
+"""omni-ai-ccas copilot.crm."""
 
 from __future__ import annotations

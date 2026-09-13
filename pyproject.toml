@@ -1,5 +1,5 @@
 [project]
-name = "ai-ccas"
+name = "omni-ai-ccas"
 version = "0.1.0"
 description = "Domain-agnostic, AI-native Customer Care Experience Platform"
 readme = "README.md"

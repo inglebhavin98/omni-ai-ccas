@@ -1,4 +1,4 @@
-# ai-ccas — Technical Specification
+# omni-ai-ccas — Technical Specification
 
 Data models, API contracts, latency budgets and enforcement points.
 

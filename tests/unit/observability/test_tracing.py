@@ -22,7 +22,7 @@ def test_correlation_ids_are_unique() -> None:
 
 def test_span_ids_propagate_into_the_context() -> None:
     exporter = InMemorySpanExporter()
-    provider = configure_tracing("ai-ccas-test", force=True)
+    provider = configure_tracing("omni-ai-ccas-test", force=True)
     provider.add_span_processor(SimpleSpanProcessor(exporter))
 
     ctx = TraceContext(
@@ -44,9 +44,9 @@ def test_span_ids_propagate_into_the_context() -> None:
 
 
 def test_configure_is_idempotent_without_force() -> None:
-    configure_tracing("ai-ccas-test", force=True)
-    first = configure_tracing("ai-ccas-test")
-    second = configure_tracing("ai-ccas-test")
+    configure_tracing("omni-ai-ccas-test", force=True)
+    first = configure_tracing("omni-ai-ccas-test")
+    second = configure_tracing("omni-ai-ccas-test")
     assert first is not second  # each call builds a provider
     from ccas.observability.otel import is_configured
 

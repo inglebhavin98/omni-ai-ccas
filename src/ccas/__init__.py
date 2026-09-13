@@ -1,4 +1,4 @@
-"""ai-ccas -- domain-agnostic AI-native Customer Care Experience Platform."""
+"""omni-ai-ccas -- domain-agnostic AI-native Customer Care Experience Platform."""
 
 from __future__ import annotations
 

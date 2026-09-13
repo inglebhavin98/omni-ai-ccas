@@ -1,4 +1,4 @@
-# ai-ccas — Design Document
+# omni-ai-ccas — Design Document
 
 Architectural overview, data flows and subsystem integration.
 
@@ -14,7 +14,7 @@ DTMF-tree routing, scripted resolution, an agent desktop, and 1–2% manual QA s
 Replacing "the IVR" alone leaves four of them, which is why IVR-only modernisations
 stall.
 
-| Layer | Legacy | ai-ccas |
+| Layer | Legacy | omni-ai-ccas |
 |---|---|---|
 | Ingress | TDM / hard-coded SIP trunks | WebRTC now, programmable SIP later (ADR-0001) |
 | Routing | DTMF tree, rules-based ACD | Intent-aware concierge over a mined taxonomy |

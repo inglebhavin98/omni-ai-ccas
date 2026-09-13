@@ -1,3 +1,3 @@
-"""ai-ccas orchestration.tools."""
+"""omni-ai-ccas orchestration.tools."""
 
 from __future__ import annotations

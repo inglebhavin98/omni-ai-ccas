@@ -1,4 +1,4 @@
-"""Manual review console for ai-ccas.
+"""Manual review console for omni-ai-ccas.
 
 Run a transcript through the pipeline and see exactly what each module does -- and,
 for modules that are not built yet, exactly which phase delivers them. Every run also
@@ -85,7 +85,7 @@ def cmd_pipeline(args: argparse.Namespace, settings: Settings) -> int:
         input_chars=len(text),
     )
 
-    _hr(f"ai-ccas pipeline  ::  domain={domain.domain}  corr={trace.correlation_id[:12]}")
+    _hr(f"omni-ai-ccas pipeline  ::  domain={domain.domain}  corr={trace.correlation_id[:12]}")
     started = time.perf_counter()
     results = run_pipeline(ctx)
     elapsed_ms = round((time.perf_counter() - started) * 1000)
@@ -292,7 +292,9 @@ def cmd_gate(_args: argparse.Namespace, _settings: Settings) -> int:
 
 
 def build_parser(default_domain: str, domains: tuple[str, ...]) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="cli.demo", description="ai-ccas manual review console")
+    parser = argparse.ArgumentParser(
+        prog="cli.demo", description="omni-ai-ccas manual review console"
+    )
     parser.add_argument("--log-level", default="INFO")
     parser.add_argument("--quiet-log", action="store_true", help="do not echo logs to stderr")
     sub = parser.add_subparsers(dest="command", required=True)
