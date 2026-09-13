@@ -1,0 +1,4 @@
+{"id": "ax-001", "turns": [{"speaker": "agent", "text": "Thanks for calling, how can I help?"}, {"speaker": "customer", "text": "Hi, this is Dana Whitfield and my reference is ORD-884210"}, {"speaker": "agent", "text": "Let me check that."}]}
+{"id": "ax-002", "script": "Agent: Good morning.\nCUSTOMER - my card is 4111 1111 1111 1111\n[Caller] and my email is dana@example.com\nAdvisor: I have that, thank you."}
+{"id": "ax-003", "transcript": "Operator: Hello there.\nUser: nothing much, just checking in"}
+{"id": "ax-004", "notes": "no turns here at all"}

@@ -1,0 +1,6 @@
+conversation_id,speaker,text,start_ms,end_ms
+c1,customer,I need help with something,0,1500
+c1,agent,Of course what is it,1600,2800
+c1,customer,my email is dana@example.com,3000,4900
+c2,customer,just a quick question,0,1200
+c2,agent,go ahead,1300,1900

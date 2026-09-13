@@ -1,0 +1,6 @@
+flags,instruction,category,intent,response
+B,I want to check the status of my request,STATUS,check_status,Let me look that up for you.
+BL,my contact details are out of date,ACCOUNT,update_details,I can update those now.
+B,there is a charge I do not recognise,BILLING,billing_question,I will review that charge.
+,,,,
+B,I want to speak to a person,CONTACT,speak_to_human,Putting you through now.

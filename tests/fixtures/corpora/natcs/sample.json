@@ -1,0 +1,17 @@
+[
+  {
+    "dialogue_id": "nat-001",
+    "turns": [
+      {"speaker": "caller", "text": "Hi, I called yesterday about this", "start": 0.0, "end": 2.4},
+      {"speaker": "agent", "text": "I can see that note here", "start": 2.6, "end": 4.1},
+      {"speaker": "caller", "text": "So what happens now", "start": 4.3, "end": 5.9}
+    ]
+  },
+  {
+    "dialogue_id": "nat-002",
+    "utterances": [
+      {"party": "A", "transcript": "my number is 415-555-0142", "start_ms": 100, "end_ms": 2300},
+      {"party": "B", "transcript": "thank you, got it", "start_ms": 2500, "end_ms": 3400}
+    ]
+  }
+]
