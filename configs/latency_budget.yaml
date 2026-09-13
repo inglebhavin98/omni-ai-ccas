@@ -1,0 +1,23 @@
+# The 800ms contract (CLAUDE.md Rule 3). tests/latency/ asserts against this file.
+# Raising any number here requires an ADR under docs/adr/.
+budget_ms: 800
+
+stages:
+  vad_ms: 100          # Silero end-of-speech detection
+  stt_ms: 180          # Deepgram Nova-3 streaming speech_final
+  redact_ms: 3         # realtime PII pass, regex only -- measured p99 111us,
+                       # 27x headroom. Full NER is ~7ms p99 and runs in BATCH mode,
+                       # off the call path. See docs/adr/0007-two-mode-redaction.md.
+  router_ms: 90        # front-door steering + policy evaluation
+  tool_ms: 150         # backend call, parallel where independent
+  llm_ttft_ms: 180     # first token, prompt-cached prefix.
+                       # Measured 2026-09-13: free OpenRouter models return in
+                       # ~2,000ms -- 11x this slice. They serve the offline and
+                       # chat paths; the call path needs a low-latency provider.
+                       # The budget is deliberately NOT raised to match them; see
+                       # docs/adr/0012-openrouter-free-models.md.
+  tts_ttfb_ms: 120     # Cartesia Sonic first audio chunk
+
+# Sum is 823ms against a 800ms ceiling: deliberately negative slack so that any
+# regression is visible immediately rather than absorbed silently.
+percentile: 95

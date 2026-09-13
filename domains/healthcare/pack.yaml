@@ -1,0 +1,103 @@
+# Healthcare payer domain pack.
+# Exists from Phase 1 as the second-pack proof: the Phase 4/5 suite must pass against
+# it with zero changes under src/ (CLAUDE.md Rule 1). Tools are stubs until Phase 6.
+schema_version: "1.0"
+domain: healthcare
+version: "0.1.0"
+display_name: Healthcare Payer
+locales: ["en-US"]
+taxonomy_ref: taxonomy.json
+
+greeting: >-
+  Thanks for calling. Tell me what you need and I'll help or get you to someone who can.
+
+confidence:
+  route: 0.88          # higher bar than retail: a wrong route here has real consequences
+  clarify_floor: 0.50
+  slot_accept: 0.80
+
+max_turns: 30
+
+compliance:
+  regimes: [hipaa]
+  transcript_retention_days: 2555
+  audio_retention_days: 2555
+  recording_consent_required: true
+  consent_prompt: >-
+    This call is recorded and handled under our privacy policy.
+
+queues:
+  - name: tier-1
+    display_name: Member Services
+    skills: [general]
+    min_verification: strong
+    max_risk_tier: medium
+  - name: clinical
+    display_name: Licensed Clinical Line
+    skills: [clinical, registered_nurse]
+    min_verification: strong
+    max_risk_tier: regulated
+
+redaction_patterns:
+  - name: subscriber_reference
+    pattern: '\b[A-Z]{3}\d{9}\b'
+    entity_type: account_ref
+    score: 0.98
+  - name: record_number
+    pattern: '\bMRN[- ]?\d{6,10}\b'
+    entity_type: health_info
+    score: 0.99
+
+tools:
+  - name: check_claim_status
+    description: Look up where a submitted claim has reached in adjudication.
+    domain: healthcare
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 1200
+    requires_verification: strong
+    risk_tier: medium
+    pii_output_fields: [member_name, provider_name]
+    input_schema:
+      type: object
+      properties:
+        claim_reference: { type: string, pattern: '^[A-Z0-9-]{6,20}$' }
+      required: [claim_reference]
+      additionalProperties: false
+
+  - name: check_copay
+    description: Return the copay amount for a service category under the member's plan.
+    domain: healthcare
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 1200
+    requires_verification: strong
+    risk_tier: medium
+    input_schema:
+      type: object
+      properties:
+        service_category: { type: string }
+      required: [service_category]
+      additionalProperties: false
+
+  - name: request_id_card
+    description: Reissue a member ID card to the address on file.
+    domain: healthcare
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1500
+    requires_verification: strong
+    risk_tier: medium
+    pii_output_fields: [mailing_address]
+    input_schema:
+      type: object
+      properties:
+        delivery: { type: string, enum: [post, digital] }
+      required: [delivery]
+      additionalProperties: false
+
+prompts:
+  router: >-
+    Classify the caller's request into exactly one intent from the supplied taxonomy.
+    Anything touching symptoms, medication or treatment is out of scope: route it to
+    the licensed clinical line rather than answering.

@@ -1,0 +1,27 @@
+# Deterministic responses for the mock backend. Development and tests only.
+tools:
+  check_claim_status:
+    - when: { claim_reference: "CLM-404404" }
+      status: not_found
+      error_code: unknown_reference
+    - data:
+        status: adjudicated
+        decision: approved
+        member_name: Priya Raman             # declared pii_output_field
+        provider_name: Riverside Clinic      # declared pii_output_field
+        processed_on: "2026-08-30"
+
+  check_copay:
+    - data:
+        amount_minor_units: 2500
+        currency: USD
+        applies_to: in_network
+
+  request_id_card:
+    - data:
+        dispatched: true
+        mailing_address: 22 Alder Road, Leeds LS2 7RT
+        arrives_within_days: 7
+
+  transfer_to_human:
+    - data: { queued: true, position: 1, estimated_wait_s: 40 }

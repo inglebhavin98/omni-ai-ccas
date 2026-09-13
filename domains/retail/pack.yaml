@@ -1,0 +1,134 @@
+# Retail / e-commerce domain pack.
+# All vertical vocabulary lives here. src/ccas/ must stay free of it (CLAUDE.md Rule 1).
+schema_version: "1.0"
+domain: retail
+version: "0.1.0"
+display_name: Retail & E-Commerce
+locales: ["en-US"]
+taxonomy_ref: taxonomy.json
+
+greeting: >-
+  Thanks for calling. Tell me what you need help with and I'll take care of it.
+
+confidence:
+  route: 0.82
+  clarify_floor: 0.45
+  slot_accept: 0.70
+
+quadrant_thresholds:
+  volume_share: 0.05
+  complexity: 0.5
+
+max_turns: 25
+
+compliance:
+  regimes: [pci_dss, gdpr]
+  transcript_retention_days: 365
+  audio_retention_days: 90
+  recording_consent_required: true
+  consent_prompt: >-
+    Just so you know, this call is recorded for quality and training.
+
+queues:
+  - name: tier-1
+    display_name: General Support
+    skills: [general]
+    min_verification: none
+    max_risk_tier: medium
+  - name: billing
+    display_name: Billing & Payments
+    skills: [billing, payments]
+    min_verification: strong
+    max_risk_tier: high
+  - name: escalations
+    display_name: Senior Escalations
+    skills: [general, retention]
+    min_verification: soft
+    max_risk_tier: regulated
+
+# Slots whose captured value is an identifier. Named here rather than in the core
+# because the core may not know what this vertical calls things (Rule 1). A slot with an
+# entity is redacted wholesale on capture, which is what catches a bare reference number
+# that matches no pattern.
+slot_pii:
+  order_number: account_ref
+  invoice_number: account_ref
+  person_name: person
+
+redaction_patterns:
+  - name: order_reference
+    pattern: '\b(?:ORD|ORDER)[- ]?\d{6,12}\b'
+    entity_type: account_ref
+    score: 0.98
+  - name: loyalty_number
+    pattern: '\b\d{4}-\d{4}-\d{4}\b'
+    entity_type: account_ref
+    score: 0.9
+  - name: gift_card_code
+    pattern: '\b[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}\b'
+    entity_type: credential
+    score: 0.95
+
+tools:
+  - name: get_order_status
+    description: Look up the current fulfilment status of an order by its reference.
+    domain: retail
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 900
+    requires_verification: soft
+    risk_tier: low
+    pii_output_fields: [shipping_address, recipient_name]
+    input_schema:
+      type: object
+      properties:
+        order_reference: { type: string, pattern: '^[A-Z0-9-]{6,20}$' }
+      required: [order_reference]
+      additionalProperties: false
+
+  - name: start_return
+    description: Open a return for one line item on a delivered order.
+    domain: retail
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1500
+    requires_verification: strong
+    risk_tier: medium
+    input_schema:
+      type: object
+      properties:
+        order_reference: { type: string }
+        line_item_id: { type: string }
+        reason_code: { type: string, enum: [damaged, wrong_item, no_longer_needed, late] }
+      required: [order_reference, line_item_id, reason_code]
+      additionalProperties: false
+
+  - name: update_delivery_address
+    description: Change the delivery address on an order that has not yet shipped.
+    domain: retail
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1500
+    requires_verification: strong
+    risk_tier: high
+    input_schema:
+      type: object
+      properties:
+        order_reference: { type: string }
+        address_line_1: { type: string }
+        postal_code: { type: string }
+        country: { type: string }
+      required: [order_reference, address_line_1, postal_code, country]
+      additionalProperties: false
+
+prompts:
+  router: >-
+    Classify the caller's request into exactly one intent from the supplied taxonomy.
+    Return the intent id and a calibrated confidence. If the request spans two intents,
+    pick the one the caller stated first and lower your confidence.
+  clarify: >-
+    Ask one short question that would separate the two most likely intents. Do not
+    list options; a caller on a phone cannot hold a menu in their head.
+  respond: >-
+    Answer only from the supplied tool results. If a value is missing, say you do not
+    have it and offer to transfer. Never estimate a date, amount or status.

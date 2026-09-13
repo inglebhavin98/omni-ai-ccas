@@ -1,0 +1,76 @@
+# Domain-agnostic tools, available to every pack.
+#
+# Only tools that mean the same thing in every vertical belong here. Anything a
+# vertical would name differently -- or that only exists in one -- goes in that pack's
+# tools list (CLAUDE.md Rule 1). Packs layer on top; they may not shadow these names.
+version: "1.0.0"
+
+tools:
+  - name: transfer_to_human
+    description: >-
+      Hand the conversation to a human agent on a named queue, with the collected
+      context. Use when the caller asks for a person, or when a policy requires it.
+    domain: core
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1200
+    requires_verification: none
+    risk_tier: low
+    input_schema:
+      type: object
+      properties:
+        queue: { type: string }
+        reason: { type: string }
+      required: [queue, reason]
+      additionalProperties: false
+
+  - name: schedule_callback
+    description: Offer to call the caller back at a stated time instead of holding.
+    domain: core
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1500
+    requires_verification: soft
+    risk_tier: low
+    input_schema:
+      type: object
+      properties:
+        when_iso8601: { type: string }
+        contact_ref: { type: string }
+      required: [when_iso8601]
+      additionalProperties: false
+
+  - name: send_link
+    description: Send a secure link to the caller on a channel they already own.
+    domain: core
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1200
+    requires_verification: strong
+    risk_tier: medium
+    pii_output_fields: [destination]
+    input_schema:
+      type: object
+      properties:
+        purpose: { type: string }
+        channel: { type: string, enum: [sms, email, app] }
+      required: [purpose, channel]
+      additionalProperties: false
+
+  - name: verify_identity
+    description: >-
+      Check a verification factor the caller has supplied. Returns the level attained;
+      it never returns the stored value it compared against.
+    domain: core
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 900
+    requires_verification: none
+    risk_tier: high
+    input_schema:
+      type: object
+      properties:
+        method: { type: string, enum: [knowledge, otp, voice_biometric] }
+        response: { type: string }
+      required: [method, response]
+      additionalProperties: false

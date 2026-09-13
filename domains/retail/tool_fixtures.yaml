@@ -1,0 +1,47 @@
+# Deterministic responses for the mock backend. Development and tests only.
+# Values are invented; the PII-shaped ones exist to exercise output redaction.
+tools:
+  get_order_status:
+    - when: { order_reference: "ORD-404404" }
+      status: not_found
+      error_code: unknown_reference
+      error_message: No order with that reference.
+    - when: { order_reference: "ORD-500500" }
+      status: error
+      error_code: upstream_unavailable
+      retryable: true
+    - when: { order_reference: "ORD-999999" }
+      status: ok
+      delay_ms: 4000          # exercises the executor's timeout path
+      data: { status: in_transit }
+    - data:
+        status: in_transit
+        carrier: Northwind Logistics
+        eta: "2026-09-18"
+        recipient_name: Dana Whitfield        # declared pii_output_field
+        shipping_address: 14 Bridge Lane, Bristol BS1 4QP
+        contact_note: call 415-555-0142 before delivery
+
+  start_return:
+    - when: { reason_code: "late" }
+      status: denied
+      error_code: outside_return_window
+      error_message: This order is outside the return window.
+    - data:
+        return_reference: RET-771204
+        label_sent: true
+        refund_window_days: 14
+
+  update_delivery_address:
+    - data:
+        updated: true
+        effective_from: "2026-09-14"
+
+  transfer_to_human:
+    - data: { queued: true, position: 3, estimated_wait_s: 95 }
+
+  verify_identity:
+    - when: { method: "otp", response: "000000" }
+      status: denied
+      error_code: verification_failed
+    - data: { verified: true, level: strong }

@@ -1,0 +1,137 @@
+# Node -> model binding. Hard-coding a model id anywhere else is a defect (Rule 5).
+#
+# Every node declares at least two variants so it can be parity-tested (Rule 6). With a
+# single gateway in front of many models, parity is between two *models* rather than two
+# vendors -- which is the more useful comparison here anyway.
+#
+# structured_mode is a property of the *model*, not the provider. Most free models ignore
+# `response_format` entirely; those are marked `prompt`, and the platform asks for JSON in
+# the prompt and extracts it. Getting this wrong fails silently and far away.
+#
+#   verified against the live catalogue on 2026-09-13:
+#     nex-agi/nex-n2.5-pro:free            response_format  yes    reasoning yes   262k
+#     nvidia/nemotron-3.5-lightning:free   response_format  NO     reasoning yes     1M
+#     inclusionai/ling-3.0-flash-vl:free   response_format  NO     reasoning yes   262k
+#     inclusionai/ling-3.0-flash-fin:free  response_format  NO     reasoning yes   262k
+default_provider: openrouter
+
+providers:
+  openrouter:
+    base_url_env: CCAS_OPENROUTER_BASE_URL
+    api_key_env: OPENROUTER_API_KEY
+    supports_temperature: true
+  vllm:
+    base_url_env: CCAS_VLLM_BASE_URL
+    supports_temperature: true
+  anthropic:
+    supports_temperature: false
+
+bindings:
+  # Front-door steering. The tightest budget in the system, so: no reasoning, low
+  # token ceiling, and the fastest model available.
+  # Native structured output is the point here: the server constrains decoding, so the
+  # model cannot prepend reasoning and blow the budget. Measured 2026-09-13:
+  # nemotron-lightning reasons inline whatever `reasoning: false` says, and truncated at
+  # 512 tokens without ever emitting JSON. Unusable on a 90ms node.
+  router:
+    openrouter:
+      model: nex-agi/nex-n2.5-pro:free
+      timeout_ms: 30000
+      structured_mode: response_format
+      reasoning: false
+      temperature: 0.0
+      max_tokens: 512
+      latency_budget_ms: 90
+      stream: false
+    openrouter_alt:
+      provider: openrouter
+      model: inclusionai/ling-3.0-flash-fin:free
+      timeout_ms: 30000
+      structured_mode: prompt
+      reasoning: false
+      temperature: 0.0
+      max_tokens: 1024
+      latency_budget_ms: 90
+      stream: false
+
+  task_agent:
+    openrouter:
+      model: nex-agi/nex-n2.5-pro:free
+      timeout_ms: 45000
+      structured_mode: response_format
+      reasoning: true
+      temperature: 0.2
+      max_tokens: 2048
+      latency_budget_ms: 180
+      stream: false
+    openrouter_alt:
+      provider: openrouter
+      model: inclusionai/ling-3.0-flash-vl:free
+      timeout_ms: 45000
+      structured_mode: prompt
+      reasoning: true
+      temperature: 0.2
+      max_tokens: 2048
+      latency_budget_ms: 180
+      stream: false
+
+  # Offline: names HDBSCAN cluster centroids into an L1/L2/L3 hierarchy. Quality over
+  # latency, and reasoning helps a lot on this task.
+  taxonomy_labeler:
+    openrouter:
+      model: nex-agi/nex-n2.5-pro:free
+      timeout_ms: 180000
+      structured_mode: response_format
+      reasoning: true
+      temperature: 0.1
+      max_tokens: 4096
+      stream: false
+    openrouter_alt:
+      provider: openrouter
+      model: nvidia/nemotron-3.5-lightning:free
+      timeout_ms: 180000
+      structured_mode: prompt
+      reasoning: true
+      temperature: 0.1
+      max_tokens: 4096
+      stream: false
+
+  # Async, off the hot path, 5% sample.
+  judge:
+    openrouter:
+      model: inclusionai/ling-3.0-flash-fin:free
+      timeout_ms: 120000
+      structured_mode: prompt
+      reasoning: true
+      temperature: 0.0
+      max_tokens: 2048
+      stream: false
+    openrouter_alt:
+      provider: openrouter
+      model: nex-agi/nex-n2.5-pro:free
+      timeout_ms: 120000
+      structured_mode: response_format
+      reasoning: true
+      temperature: 0.0
+      max_tokens: 2048
+      stream: false
+
+  # Post-call CRM summary. Not on the call path.
+  summarizer:
+    openrouter:
+      model: inclusionai/ling-3.0-flash-vl:free
+      timeout_ms: 120000
+      structured_mode: prompt
+      reasoning: false
+      temperature: 0.1
+      max_tokens: 2048
+      stream: false
+    openrouter_alt:
+      provider: openrouter
+      model: nex-agi/nex-n2.5-pro:free
+      timeout_ms: 120000
+      structured_mode: response_format
+      reasoning: false
+      temperature: 0.1
+      max_tokens: 2048
+      stream: false

@@ -1,0 +1,30 @@
+# Global redaction policy. Domain packs layer additional patterns on top; they never
+# remove one of these (CLAUDE.md Rule 2).
+version: "1.0.0"
+
+# Regex runs first because it is the only stage that fits the 3ms realtime budget.
+# Presidio is consulted only for entity classes regex cannot settle (names, places).
+engines:
+  - name: regex
+    enabled: true
+  - name: presidio_onnx
+    enabled: true
+    # When the model is absent the pipeline reports UNVERIFIED and blocks egress.
+    # Setting fail_closed: false is a deliberate, recorded decision to degrade to
+    # regex-only detection -- structured identifiers still caught, names no longer.
+    fail_closed: true
+    min_score: 0.6
+    entities: [person, location, org, address]
+    # Development default. Production should run en_core_web_lg: detection quality
+    # differs materially and the model is a recorded choice, never a silent fallback.
+    # Install with: uv run python -m spacy download en_core_web_sm
+    spacy_model: en_core_web_sm
+
+placeholder_format: "[{entity}_{n}]"
+min_score: 0.5
+realtime_budget_us: 3000
+
+# Post-substitution re-scan. A hit here forces DIRTY and blocks egress.
+leak_detection:
+  enabled: true
+  patterns: [national_id, payment_card, iban, bank_account, email, phone, credential]
