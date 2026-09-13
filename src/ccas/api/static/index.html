@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-ccas workbench</title>
+<style>
+  :root {
+    --bg: #fbfbfa; --panel: #fff; --ink: #1a1a19; --muted: #6b6b66; --line: #e4e4e0;
+    --accent: #2f6f4e; --warn: #8a5a1a; --bad: #8c2f2f; --chip: #f1f1ee;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17171a; --panel: #1e1e22; --ink: #e8e8e4; --muted: #9a9a95; --line: #303036;
+      --accent: #6fbf8f; --warn: #d5a24a; --bad: #e08a8a; --chip: #26262b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { border-bottom: 1px solid var(--line); padding: 12px 20px;
+           display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  header .spacer { flex: 1; }
+  .wrap { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px;
+          padding: 16px 20px; align-items: start; }
+  @media (max-width: 960px) { .wrap { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+           overflow: hidden; }
+  .panel > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
+                color: var(--muted); margin: 0; padding: 10px 14px;
+                border-bottom: 1px solid var(--line); font-weight: 600; }
+  .body { padding: 12px 14px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  label { font-size: 12px; color: var(--muted); }
+  select, input[type=text], textarea {
+    font: inherit; color: inherit; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  input[type=text], textarea { flex: 1; min-width: 0; }
+  button { font: inherit; font-weight: 500; border: 1px solid var(--line);
+           background: var(--chip); color: var(--ink); border-radius: 6px;
+           padding: 6px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .chip { font: 11px/1.6 var(--mono); background: var(--chip); border-radius: 4px;
+          padding: 1px 6px; color: var(--muted); white-space: nowrap; }
+  .chip.ok { color: var(--accent); } .chip.warn { color: var(--warn); }
+  .chip.bad { color: var(--bad); }
+  .turn { padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .turn:last-child { border-bottom: 0; }
+  .turn .who { font: 11px var(--mono); color: var(--muted); }
+  .turn.caller .who { color: var(--warn); }
+  .turn .text { white-space: pre-wrap; word-break: break-word; }
+  #transcript { max-height: 340px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font: 12px/1.5 var(--mono); }
+  td, th { text-align: left; padding: 3px 6px 3px 0; vertical-align: top;
+           border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  tr:last-child td { border-bottom: 0; }
+  pre { font: 11px/1.45 var(--mono); background: var(--bg); border: 1px solid var(--line);
+        border-radius: 6px; padding: 8px; overflow-x: auto; margin: 6px 0 0; }
+  .empty { color: var(--muted); font-style: italic; }
+  .stack > * + * { margin-top: 12px; }
+  .note { color: var(--muted); font-size: 12px; }
+  .bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+  .bar.over > i { background: var(--bad); }
+  details > summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ai-ccas workbench</h1>
+  <span id="ready" class="chip">checking…</span>
+  <span class="spacer"></span>
+  <label>domain <select id="domain"></select></label>
+  <label>verification
+    <select id="verification">
+      <option value="none">none</option>
+      <option value="soft">soft</option>
+      <option value="strong" selected>strong</option>
+      <option value="step_up">step_up</option>
+    </select>
+  </label>
+  <button id="new" class="primary">New session</button>
+</header>
+
+<div class="wrap">
+  <div class="stack">
+    <section class="panel">
+      <h2>Conversation <span id="sid" class="chip"></span></h2>
+      <div class="body">
+        <div id="transcript"><p class="empty">Start a session to begin.</p></div>
+        <div class="row" style="margin-top:10px">
+          <input id="say" type="text" placeholder="type what the caller says…" disabled>
+          <button id="send" disabled>Send</button>
+        </div>
+        <p id="hint" class="note"></p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Redaction preview <span class="chip">no LLM needed</span></h2>
+      <div class="body">
+        <div class="row">
+          <input id="redactIn" type="text"
+                 value="hi this is Dana Whitfield, card 4111 1111 1111 1111, ref ORD-884210">
+          <button id="redactGo">Redact</button>
+        </div>
+        <div id="redactOut"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Tool prober <span class="chip">no LLM needed</span></h2>
+      <div class="body">
+        <div class="row">
+          <select id="toolName"></select>
+          <button id="toolGo">Invoke</button>
+        </div>
+        <textarea id="toolArgs" rows="4" style="width:100%;margin-top:8px"
+                  spellcheck="false">{}</textarea>
+        <div id="toolOut"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>Routing</h2>
+      <div class="body" id="routing"><p class="empty">—</p></div>
+    </section>
+    <section class="panel">
+      <h2>Policy verdicts</h2>
+      <div class="body" id="policies"><p class="empty">—</p></div>
+    </section>
+    <section class="panel">
+      <h2>Slots &amp; counters</h2>
+      <div class="body" id="slots"><p class="empty">—</p></div>
+    </section>
+    <section class="panel">
+      <h2>Tool calls</h2>
+      <div class="body" id="tools"><p class="empty">—</p></div>
+    </section>
+    <section class="panel">
+      <h2>Latency ledger</h2>
+      <div class="body" id="latency"><p class="empty">—</p></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+let session = null;
+
+async function api(path, opts) {
+  const res = await fetch(path, { headers: { "content-type": "application/json" }, ...opts });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail || `${res.status} ${res.statusText}`);
+  return body;
+}
+
+async function boot() {
+  try {
+    const ready = await api("/ready");
+    const chip = $("ready");
+    if (ready.provider_configured) {
+      chip.textContent = `provider: ${ready.default_provider}`;
+      chip.className = "chip ok";
+    } else {
+      chip.textContent = "no LLM provider — routing disabled";
+      chip.className = "chip warn";
+      chip.title = ready.provider_error || "";
+    }
+    const domains = await api("/v1/domains");
+    $("domain").innerHTML = Object.entries(domains).map(([name, d]) =>
+      `<option value="${name}">${esc(d.display_name)}${d.has_taxonomy ? "" : " (no taxonomy)"}</option>`
+    ).join("");
+    await loadTools();
+  } catch (e) {
+    $("ready").textContent = "api unreachable"; $("ready").className = "chip bad";
+  }
+}
+
+async function loadTools() {
+  const tools = await api(`/v1/tools?domain=${$("domain").value}`);
+  $("toolName").innerHTML = Object.entries(tools).map(([name, t]) =>
+    `<option value="${name}">${name} — ${t.scope}, ${t.requires_verification}</option>`).join("");
+  syncToolArgs(tools);
+  $("toolName").onchange = () => syncToolArgs(tools);
+}
+
+function syncToolArgs(tools) {
+  const spec = tools[$("toolName").value];
+  const required = (spec?.input_schema?.required) || [];
+  $("toolArgs").value = JSON.stringify(
+    Object.fromEntries(required.map(k => [k, ""])), null, 2);
+}
+
+async function newSession() {
+  session = await api("/v1/sessions", { method: "POST", body: JSON.stringify({
+    domain: $("domain").value, verification: $("verification").value }) });
+  $("say").disabled = false; $("send").disabled = false; $("say").focus();
+  render(session);
+}
+
+async function send() {
+  const text = $("say").value.trim();
+  if (!text || !session) return;
+  $("say").value = ""; $("send").disabled = true;
+  try {
+    session = await api(`/v1/sessions/${session.session_id}/turns`,
+      { method: "POST", body: JSON.stringify({ text }) });
+    render(session);
+  } catch (e) {
+    $("hint").textContent = e.message;
+  } finally {
+    $("send").disabled = false; $("say").focus();
+  }
+}
+
+function render(s) {
+  $("sid").textContent = s.session_id;
+  $("transcript").innerHTML = s.transcript.length ? s.transcript.map(t => `
+    <div class="turn ${t.speaker}">
+      <div class="who">${t.speaker}${Object.keys(t.redacted_entities).length
+        ? " · redacted " + esc(JSON.stringify(t.redacted_entities)) : ""}</div>
+      <div class="text">${esc(t.text)}</div>
+    </div>`).join("") : `<p class="empty">—</p>`;
+  $("transcript").scrollTop = $("transcript").scrollHeight;
+
+  $("hint").textContent = s.terminal
+    ? "Session is terminal — start a new one."
+    : s.pending_slot ? `waiting for slot: ${s.pending_slot}` : "";
+  $("say").disabled = s.terminal; $("send").disabled = s.terminal;
+
+  const i = s.current_intent;
+  $("routing").innerHTML = `
+    <table>
+      <tr><th>intent</th><td>${i ? esc(i.intent_id ?? "unresolved") : "—"}</td></tr>
+      <tr><th>confidence</th><td>${i ? i.confidence.toFixed(2) : "—"}</td></tr>
+      <tr><th>source</th><td>${i ? esc(i.source) : "—"}</td></tr>
+      <tr><th>agent</th><td>${esc(s.active_agent ?? "—")}</td></tr>
+      <tr><th>router ms</th><td>${i ? i.latency_ms : "—"}</td></tr>
+    </table>
+    ${s.escalation ? `<pre>ESCALATED · ${esc(s.escalation.reason)} · by ${esc(s.escalation.triggered_by)}
+${esc(s.escalation.detail ?? "")}</pre>` : ""}
+    ${s.outcome ? `<pre>outcome: ${esc(s.outcome.status)} · ${esc(s.outcome.disposition_code ?? "")}</pre>` : ""}`;
+
+  $("policies").innerHTML = `<table><tr><th>policy</th><th>action</th><th>detail</th></tr>` +
+    s.policy_verdicts.map(v => `<tr>
+      <td>${v.decisive ? "▸ " : ""}${esc(v.policy)}</td>
+      <td class="${v.action === 'proceed' ? '' : 'chip bad'}">${esc(v.action)}</td>
+      <td>${esc(v.detail ?? "")}</td></tr>`).join("") + `</table>`;
+
+  const slots = Object.entries(s.slots);
+  $("slots").innerHTML =
+    (slots.length ? `<table><tr><th>slot</th><th>value</th><th>ok</th><th>tries</th></tr>` +
+      slots.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v.value)}</td>
+        <td>${v.valid ? "yes" : "no"}</td><td>${v.attempts}</td></tr>`).join("") + `</table>`
+      : `<p class="empty">no slots captured</p>`) +
+    `<table style="margin-top:8px">` + Object.entries(s.counters)
+      .map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`).join("") + `</table>`;
+
+  $("tools").innerHTML = s.tool_records.length
+    ? s.tool_records.map(r => `<pre>${esc(r.tool)} → ${esc(r.status)} (${r.elapsed_ms}ms, attempt ${r.attempt})
+args   ${esc(JSON.stringify(r.arguments))}
+${r.error_code ? "error  " + esc(r.error_code) + " — " + esc(r.error_message ?? "")
+               : "data   " + esc(JSON.stringify(r.data))}</pre>`).join("")
+    : `<p class="empty">no tools called</p>`;
+
+  const L = s.latency, pct = Math.min(100, (L.total_rtt_ms / L.budget_ms) * 100);
+  $("latency").innerHTML = `
+    <div class="bar ${L.breached ? "over" : ""}"><i style="width:${pct}%"></i></div>
+    <p class="note">${L.total_rtt_ms} ms of ${L.budget_ms} ms${L.breached ? " — BREACHED" : ""}</p>
+    <table>` + Object.entries(L).filter(([k]) => k.endsWith("_ms") && k !== "budget_ms" && k !== "total_rtt_ms")
+      .map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`).join("") + `</table>`;
+}
+
+$("new").onclick = () => newSession().catch(e => $("hint").textContent = e.message);
+$("send").onclick = send;
+$("say").onkeydown = (e) => { if (e.key === "Enter") send(); };
+$("domain").onchange = () => loadTools();
+
+$("redactGo").onclick = async () => {
+  const q = new URLSearchParams({ text: $("redactIn").value, domain: $("domain").value });
+  try {
+    const r = await api(`/v1/redaction/preview?${q}`);
+    $("redactOut").innerHTML = `<pre>${esc(r.redacted)}</pre>
+      <p class="note">${r.status} · ${r.elapsed_us} µs · ${esc(JSON.stringify(r.entity_counts))}</p>`;
+  } catch (e) { $("redactOut").innerHTML = `<pre>${esc(e.message)}</pre>`; }
+};
+
+$("toolGo").onclick = async () => {
+  let args;
+  try { args = JSON.parse($("toolArgs").value || "{}"); }
+  catch { $("toolOut").innerHTML = `<pre>arguments are not valid JSON</pre>`; return; }
+  try {
+    const r = await api(
+      `/v1/tools/${$("toolName").value}/invoke?domain=${$("domain").value}`,
+      { method: "POST", body: JSON.stringify({ arguments: args, verification: $("verification").value }) });
+    $("toolOut").innerHTML = `<pre>${esc(r.status)} (${r.elapsed_ms}ms)
+${r.error_code ? esc(r.error_code) + " — " + esc(r.error_message ?? "")
+               : esc(JSON.stringify(r.data, null, 2))}</pre>`;
+  } catch (e) { $("toolOut").innerHTML = `<pre>${esc(e.message)}</pre>`; }
+};
+
+boot();
+</script>
+</body>
+</html>
