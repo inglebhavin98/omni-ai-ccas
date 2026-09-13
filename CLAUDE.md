@@ -39,6 +39,7 @@ make latency      # pytest tests/latency -q          (budget gate)
 make security     # pytest tests/security -q         (leakage + domain-leak gate)
 make voice        # the frozen voice channel (ADR-0018); excluded from `make test`
 make evals        # provider parity (Rule 6); Ragas/DeepEval land with Module 6
+make eval-router  # router accuracy on held-out rows (1 LLM call per row)
 uv run scripts/ingest.py --source bitext --domain retail
 uv run scripts/mine_taxonomy.py --domain retail
 uv run python -m ccas.voice.worker preflight  # what blocks answering a call

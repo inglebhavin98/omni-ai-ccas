@@ -7,7 +7,7 @@
 UV := uv run --frozen
 UVX := uv
 
-.PHONY: help install check fmt lint types test test-fast latency security voice evals workbench clean
+.PHONY: help install check fmt lint types test test-fast latency security voice evals eval-router workbench clean
 
 help:  ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -44,6 +44,9 @@ workbench:  ## interactive console at http://127.0.0.1:8000 (loopback only)
 
 voice:  ## the frozen voice channel (ADR-0018). Must stay green before resuming voice
 	$(UV) pytest -m voice -q
+
+eval-router:  ## measure router accuracy on held-out rows (9.18). Costs 1 LLM call/row
+	$(UV) python scripts/eval_router.py --domain retail --limit 40
 
 evals:  ## provider parity (Rule 6). Ragas/DeepEval suites land with Module 6
 	$(UV) pytest tests/evals -q -rs
