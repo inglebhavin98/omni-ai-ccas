@@ -1,0 +1,192 @@
+[project]
+name = "ai-ccas"
+version = "0.1.0"
+description = "Domain-agnostic, AI-native Customer Care Experience Platform"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+
+# Phase 1 keeps the runtime surface minimal: contracts + config + observability.
+# Heavier stacks arrive with the phase that needs them (see optional-dependencies).
+dependencies = [
+    # numpy is base, not an extra: the hashing embedder and the clustering
+    # interfaces must stay importable without a 2GB torch install.
+    "numpy>=2.0",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    # Tool arguments are validated against the pack's JSON Schema before dispatch;
+    # a hand-rolled checker would drift from the schemas it is meant to enforce.
+    "jsonschema>=4.23",
+    "pyyaml>=6.0",
+    "structlog>=24.4",
+    "httpx>=0.27",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+]
+
+[project.optional-dependencies]
+# Phase 1 (1.14 / 1.15): both LLM bindings ship together -- see CLAUDE.md Rule 6.
+llm = [
+    "anthropic>=0.40",
+]
+# Phase 2 (M2): local-only PII inference.
+# The spaCy model is pinned here on purpose. Installed out-of-band via
+# `spacy download` it is not in the lock, so the next `uv sync` prunes it -- and the
+# pipeline then fails closed and quarantines 100% of ingestion. Correct behaviour,
+# terrible surprise. Production should swap this for en_core_web_lg and update
+# `spacy_model` in configs/redaction_policy.yaml to match.
+redaction = [
+    "presidio-analyzer>=2.2",
+    "presidio-anonymizer>=2.2",
+    "onnxruntime>=1.19",
+    "en-core-web-sm",
+]
+# Phase 2/3 (M1/M3): ingestion sinks + intent mining.
+mining = [
+    "sentence-transformers>=3.1",
+    "hdbscan>=0.8.38",
+    "bertopic>=0.16",
+    "scikit-learn>=1.5",
+    "pyarrow>=17.0",
+    "pandas>=2.2",
+]
+# Phase 4 (M4).
+orchestration = [
+    "langgraph>=0.2.28",
+]
+# Phase 5 (M5).
+voice = [
+    "livekit-agents>=0.11",
+    "livekit-plugins-silero>=0.7",
+    "livekit-plugins-deepgram>=0.6",
+    "livekit-plugins-cartesia>=0.4",
+]
+# Phase 6 (M6).
+evals = [
+    "ragas>=0.2",
+    "deepeval>=1.4",
+]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.31",
+    "websockets>=13.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "types-jsonschema>=4.23",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.112",
+    "ruff>=0.6.9",
+    "mypy>=1.11",
+    "types-pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ccas", "src/cli"]
+artifacts = ["src/ccas/api/static/*", "src/ccas/py.typed", "src/cli/py.typed"]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle / pyflakes
+    "I",                # isort
+    "N",                # pep8-naming
+    "UP",               # pyupgrade
+    "B",                # bugbear
+    "A",                # builtin shadowing
+    "C4",               # comprehensions
+    "DTZ",              # naive-datetime (call-path correctness)
+    "T20",              # no print -- CLAUDE.md Rule 8
+    "SIM",
+    "PTH",
+    "RUF",
+    "ASYNC",            # blocking calls in async paths -- Rule 3
+    "S",                # bandit
+    "TID",
+    "ANN",              # missing annotations -- Rule 8
+]
+ignore = [
+    "ANN401",  # explicit Any is required for JsonValue passthrough
+    "S101",    # assert is the pytest idiom
+    "UP040",   # PEP 695 `type` aliases are lazily evaluated; pydantic resolves
+               # Annotated TypeAlias constraints more reliably
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S", "PLR2004"]
+"scripts/**" = ["T20"]  # CLIs print to stdout by design
+"src/cli/**" = ["T20"]  # the demo console is a terminal UI
+# The worker CLI reports preflight results to an operator standing at a terminal.
+# Runtime logging inside it still goes through structlog (CLAUDE.md Rule 8).
+"src/ccas/voice/worker.py" = ["T20"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_any_generics = true
+no_implicit_reexport = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["ccas", "cli"]
+
+[[tool.mypy.overrides]]
+module = [
+    "hdbscan.*", "bertopic.*", "presidio_analyzer.*", "presidio_anonymizer.*",
+    "sentence_transformers.*", "livekit.*", "ragas.*", "deepeval.*",
+    "silero_vad.*", "torch.*", "deepgram.*", "cartesia.*",
+]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+asyncio_mode = "auto"
+# Voice is frozen (ADR-0018): excluded by default, still run by `make voice` and
+# `make check`. tests/test_module_5_voice_frozen.py is NOT excluded -- it is the
+# tripwire that catches the core drifting away from a suite nobody is watching.
+addopts = "-q --strict-markers --strict-config -m 'not voice'"
+markers = [
+    "slow: takes more than a second",
+    "integration: needs a live dependency (docker compose)",
+    "latency: asserts a latency budget from configs/latency_budget.yaml",
+    "security: asserts a zero-leakage or domain-agnosticism invariant",
+    "voice: the frozen voice channel (ADR-0018). Runs under `make voice`, not by default",
+]
+filterwarnings = ["error::DeprecationWarning:ccas.*"]
+
+[tool.coverage.run]
+source = ["src/ccas"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+# ---------------------------------------------------------------- uv sources
+[tool.uv.sources]
+# Direct wheel so the model lives in the lock. See the redaction extra above.
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }

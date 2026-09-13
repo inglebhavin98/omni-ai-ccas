@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+
+# Never commit call data, recordings, or artifacts derived from them.
+# The directory structure and its READMEs are tracked; the corpora are not.
+data/**
+!data/**/
+!data/**/README.md
+logs/**
+!logs/.gitkeep
+
+*.parquet
+*.wav
+*.mp3
+!tests/fixtures/audio/*.wav
+
+# Personal working notes and session transcripts. Not project source, and
+# self-refs/datasets.md has held a live API key in plaintext.
+self-refs/
+
+# Claude Code local state. Project-level config is committed deliberately, not by default.
+.claude/
