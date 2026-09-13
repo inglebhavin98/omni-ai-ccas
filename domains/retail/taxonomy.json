@@ -1,0 +1,1843 @@
+{
+  "schema_version": "1.1",
+  "taxonomy_id": "retail-adopted-bitext",
+  "domain": "retail",
+  "version": "0.1.0",
+  "nodes": [
+    {
+      "intent_id": "account",
+      "level": 1,
+      "parent_id": null,
+      "label": "Account",
+      "description": "Contacts about account.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 2986,
+        "call_count": 2986,
+        "share_of_total": 0.222305,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.222305,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "cancel",
+      "level": 1,
+      "parent_id": null,
+      "label": "Cancel",
+      "description": "Contacts about cancel.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 480,
+        "call_count": 480,
+        "share_of_total": 0.035736,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.035736,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "contact",
+      "level": 1,
+      "parent_id": null,
+      "label": "Contact",
+      "description": "Contacts about contact.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 1057,
+        "call_count": 1057,
+        "share_of_total": 0.078693,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.078693,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "delivery",
+      "level": 1,
+      "parent_id": null,
+      "label": "Delivery",
+      "description": "Contacts about delivery.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 996,
+        "call_count": 996,
+        "share_of_total": 0.074151,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.074151,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "feedback",
+      "level": 1,
+      "parent_id": null,
+      "label": "Feedback",
+      "description": "Contacts about feedback.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 954,
+        "call_count": 954,
+        "share_of_total": 0.071024,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.071024,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "invoice",
+      "level": 1,
+      "parent_id": null,
+      "label": "Invoice",
+      "description": "Contacts about invoice.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 995,
+        "call_count": 995,
+        "share_of_total": 0.074077,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.074077,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "order",
+      "level": 1,
+      "parent_id": null,
+      "label": "Order",
+      "description": "Contacts about order.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 2023,
+        "call_count": 2023,
+        "share_of_total": 0.15061,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.15061,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "payment",
+      "level": 1,
+      "parent_id": null,
+      "label": "Payment",
+      "description": "Contacts about payment.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 978,
+        "call_count": 978,
+        "share_of_total": 0.072811,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.072811,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "refund",
+      "level": 1,
+      "parent_id": null,
+      "label": "Refund",
+      "description": "Contacts about refund.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 1456,
+        "call_count": 1456,
+        "share_of_total": 0.108398,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.108398,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "shipping",
+      "level": 1,
+      "parent_id": null,
+      "label": "Shipping",
+      "description": "Contacts about shipping.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 1000,
+        "call_count": 1000,
+        "share_of_total": 0.074449,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.074449,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "subscription",
+      "level": 1,
+      "parent_id": null,
+      "label": "Subscription",
+      "description": "Contacts about subscription.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 507,
+        "call_count": 507,
+        "share_of_total": 0.037746,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037746,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.create_account",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Create Account",
+      "description": "Caller wants to create account (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 484,
+        "call_count": 484,
+        "share_of_total": 0.036033,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036033,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "account_category",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account category?",
+          "reprompt": "Sorry, I still need the account category.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "account_type",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account type?",
+          "reprompt": "Sorry, I still need the account type.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.delete_account",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Delete Account",
+      "description": "Caller wants to delete account (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 494,
+        "call_count": 494,
+        "share_of_total": 0.036778,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036778,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "account_category",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account category?",
+          "reprompt": "Sorry, I still need the account category.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "account_type",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account type?",
+          "reprompt": "Sorry, I still need the account type.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.edit_account",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Edit Account",
+      "description": "Caller wants to edit account (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 488,
+        "call_count": 488,
+        "share_of_total": 0.036331,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036331,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "account_category",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account category?",
+          "reprompt": "Sorry, I still need the account category.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "account_type",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account type?",
+          "reprompt": "Sorry, I still need the account type.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.recover_password",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Recover Password",
+      "description": "Caller wants to recover password (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 485,
+        "call_count": 485,
+        "share_of_total": 0.036108,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036108,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.registration_problems",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Registration Problems",
+      "description": "Caller wants to registration problems (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 499,
+        "call_count": 499,
+        "share_of_total": 0.03715,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.03715,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "account.switch_account",
+      "level": 2,
+      "parent_id": "account",
+      "label": "Switch Account",
+      "description": "Caller wants to switch account (account).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 536,
+        "call_count": 536,
+        "share_of_total": 0.039905,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.039905,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "account_category",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account category?",
+          "reprompt": "Sorry, I still need the account category.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "account_type",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the account type?",
+          "reprompt": "Sorry, I still need the account type.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "cancel.check_cancellation_fee",
+      "level": 2,
+      "parent_id": "cancel",
+      "label": "Check Cancellation Fee",
+      "description": "Caller wants to check cancellation fee (cancel).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 480,
+        "call_count": 480,
+        "share_of_total": 0.035736,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.035736,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "contact.contact_customer_service",
+      "level": 2,
+      "parent_id": "contact",
+      "label": "Contact Customer Service",
+      "description": "Caller wants to contact customer service (contact).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 540,
+        "call_count": 540,
+        "share_of_total": 0.040203,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.040203,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "contact.contact_human_agent",
+      "level": 2,
+      "parent_id": "contact",
+      "label": "Contact Human Agent",
+      "description": "Caller wants to contact human agent (contact).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 517,
+        "call_count": 517,
+        "share_of_total": 0.03849,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.03849,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "delivery.delivery_options",
+      "level": 2,
+      "parent_id": "delivery",
+      "label": "Delivery Options",
+      "description": "Caller wants to delivery options (delivery).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 498,
+        "call_count": 498,
+        "share_of_total": 0.037076,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037076,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "delivery_city",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the delivery city?",
+          "reprompt": "Sorry, I still need the delivery city.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "delivery_country",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the delivery country?",
+          "reprompt": "Sorry, I still need the delivery country.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "delivery.delivery_period",
+      "level": 2,
+      "parent_id": "delivery",
+      "label": "Delivery Period",
+      "description": "Caller wants to delivery period (delivery).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 498,
+        "call_count": 498,
+        "share_of_total": 0.037076,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037076,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "feedback.complaint",
+      "level": 2,
+      "parent_id": "feedback",
+      "label": "Complaint",
+      "description": "Caller wants to complaint (feedback).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 462,
+        "call_count": 462,
+        "share_of_total": 0.034395,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.034395,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "feedback.review",
+      "level": 2,
+      "parent_id": "feedback",
+      "label": "Review",
+      "description": "Caller wants to review (feedback).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 492,
+        "call_count": 492,
+        "share_of_total": 0.036629,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036629,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "invoice.check_invoice",
+      "level": 2,
+      "parent_id": "invoice",
+      "label": "Check Invoice",
+      "description": "Caller wants to check invoice (invoice).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 481,
+        "call_count": 481,
+        "share_of_total": 0.03581,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.03581,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "invoice_number",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the invoice number?",
+          "reprompt": "Sorry, I still need the invoice number.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "person_name",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the person name?",
+          "reprompt": "Sorry, I still need the person name.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "person",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "invoice.get_invoice",
+      "level": 2,
+      "parent_id": "invoice",
+      "label": "Get Invoice",
+      "description": "Caller wants to get invoice (invoice).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 514,
+        "call_count": 514,
+        "share_of_total": 0.038267,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.038267,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "invoice_number",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the invoice number?",
+          "reprompt": "Sorry, I still need the invoice number.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "person_name",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the person name?",
+          "reprompt": "Sorry, I still need the person name.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "person",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "order.cancel_order",
+      "level": 2,
+      "parent_id": "order",
+      "label": "Cancel Order",
+      "description": "Caller wants to cancel order (order).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 494,
+        "call_count": 494,
+        "share_of_total": 0.036778,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.6,
+        "complexity": 0.4,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036778,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [
+        {
+          "name": "order_number",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the order number?",
+          "reprompt": "Sorry, I still need the order number.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "order.change_order",
+      "level": 2,
+      "parent_id": "order",
+      "label": "Change Order",
+      "description": "Caller wants to change order (order).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 517,
+        "call_count": 517,
+        "share_of_total": 0.03849,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.6,
+        "complexity": 0.4,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.03849,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [
+        {
+          "name": "order_number",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the order number?",
+          "reprompt": "Sorry, I still need the order number.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "order.place_order",
+      "level": 2,
+      "parent_id": "order",
+      "label": "Place Order",
+      "description": "Caller wants to place order (order).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 503,
+        "call_count": 503,
+        "share_of_total": 0.037448,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037448,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "order.track_order",
+      "level": 2,
+      "parent_id": "order",
+      "label": "Track Order",
+      "description": "Caller wants to track order (order).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 509,
+        "call_count": 509,
+        "share_of_total": 0.037895,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.6,
+        "complexity": 0.4,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037895,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [
+        {
+          "name": "order_number",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the order number?",
+          "reprompt": "Sorry, I still need the order number.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "payment.check_payment_methods",
+      "level": 2,
+      "parent_id": "payment",
+      "label": "Check Payment Methods",
+      "description": "Caller wants to check payment methods (payment).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 505,
+        "call_count": 505,
+        "share_of_total": 0.037597,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037597,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "payment.payment_issue",
+      "level": 2,
+      "parent_id": "payment",
+      "label": "Payment Issue",
+      "description": "Caller wants to payment issue (payment).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 473,
+        "call_count": 473,
+        "share_of_total": 0.035214,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.035214,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "refund.check_refund_policy",
+      "level": 2,
+      "parent_id": "refund",
+      "label": "Check Refund Policy",
+      "description": "Caller wants to check refund policy (refund).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 486,
+        "call_count": 486,
+        "share_of_total": 0.036182,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036182,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "refund.get_refund",
+      "level": 2,
+      "parent_id": "refund",
+      "label": "Get Refund",
+      "description": "Caller wants to get refund (refund).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 474,
+        "call_count": 474,
+        "share_of_total": 0.035289,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.035289,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "currency_symbol",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the currency symbol?",
+          "reprompt": "Sorry, I still need the currency symbol.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "refund_amount",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the refund amount?",
+          "reprompt": "Sorry, I still need the refund amount.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "refund.track_refund",
+      "level": 2,
+      "parent_id": "refund",
+      "label": "Track Refund",
+      "description": "Caller wants to track refund (refund).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 496,
+        "call_count": 496,
+        "share_of_total": 0.036927,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.45,
+        "complexity": 0.55,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.036927,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "direct_agent_route"
+      },
+      "slots": [
+        {
+          "name": "currency_symbol",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the currency symbol?",
+          "reprompt": "Sorry, I still need the currency symbol.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "refund_amount",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Could you give me the refund amount?",
+          "reprompt": "Sorry, I still need the refund amount.",
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "shipping.change_shipping_address",
+      "level": 2,
+      "parent_id": "shipping",
+      "label": "Change Shipping Address",
+      "description": "Caller wants to change shipping address (shipping).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 476,
+        "call_count": 476,
+        "share_of_total": 0.035438,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.035438,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "shipping.set_up_shipping_address",
+      "level": 2,
+      "parent_id": "shipping",
+      "label": "Set Up Shipping Address",
+      "description": "Caller wants to set up shipping address (shipping).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 524,
+        "call_count": 524,
+        "share_of_total": 0.039011,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.039011,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "subscription.newsletter_subscription",
+      "level": 2,
+      "parent_id": "subscription",
+      "label": "Newsletter Subscription",
+      "description": "Caller wants to newsletter subscription (subscription).",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 507,
+        "call_count": 507,
+        "share_of_total": 0.037746,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.25,
+        "confidence": 0.3,
+        "rationale": "Adopted from a published label set: the intent is real, its fit to this deployment's traffic is unverified.",
+        "volume_share": 0.037746,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "self_service_scripted"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    }
+  ],
+  "provenance": "adopted",
+  "adopted_from": "bitext",
+  "derivation_split": "a",
+  "embedding_model": "",
+  "embedding_mean": [],
+  "homogeneity": null,
+  "clusterer": "none",
+  "clusterer_params": {},
+  "labeler_model": "",
+  "coverage": 1.0,
+  "noise_ratio": 0.0,
+  "source_call_ids": [],
+  "generated_at": "2026-09-13T15:58:53.788342Z"
+}
