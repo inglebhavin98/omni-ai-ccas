@@ -1,0 +1,14 @@
+# Chat latency budget (ADR-0019). A separate contract from the voice budget, not a
+# relaxation of it -- Rule 3 still forbids raising a budget to make a test pass.
+#
+# There is no VAD, STT or TTS: input arrives as text and output leaves as text. What
+# remains is the part of the turn that is actually the platform's work, and it is the same
+# work voice does.
+budget_ms: 4000
+stages:
+  redact_ms: 15         # BATCH: regex + spaCy NER. Measured p99 7.0 ms, doubled for headroom
+  router_ms: 2500       # free models measured ~2,025 ms median (ADR-0012); unusable on
+                        # voice at 90 ms, ordinary here
+  tool_ms: 300          # backend call, parallel where independent
+  llm_ttft_ms: 1000     # first token of the reply
+percentile: 95

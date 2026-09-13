@@ -1,0 +1,45 @@
+# Channel profiles. What differs between channels is configuration, not code -- the same
+# reasoning as domain packs (Rule 1). See docs/adr/0019-channel-profiles.md.
+#
+# A channel declared in `Channel` but absent here is a latent crash, so the loader
+# requires every enum member to be present.
+schema_version: "1.0"
+
+channels:
+  voice:
+    # FROZEN (ADR-0018). REALTIME skips the spaCy NER pass to fit a 3 ms slice -- the
+    # trade ADR-0007 made, and the residual risk it names. Do not "improve" this without
+    # re-measuring against the 800 ms ceiling.
+    redaction_mode: realtime
+    budget_ms: 800
+    budget_ref: latency_budget.yaml
+    supports_keypad_entry: true
+
+  chat:
+    # The pivot's headline win: no 3 ms slice, so the NER pass is affordable (111 us ->
+    # 7.0 ms measured) and ADR-0007's residual risk does not apply here.
+    redaction_mode: batch
+    # Not a relaxed voice budget -- a different contract. No VAD, no STT, no TTS; a person
+    # is reading, and the free models ADR-0012 measured at ~2,025 ms median are usable.
+    budget_ms: 4000
+    budget_ref: latency_budget_chat.yaml
+    supports_keypad_entry: false
+
+  web:
+    redaction_mode: batch
+    budget_ms: 4000
+    budget_ref: latency_budget_chat.yaml
+    supports_keypad_entry: false
+
+  sms:
+    # Asynchronous and store-and-forward: nobody is watching a cursor blink.
+    redaction_mode: batch
+    budget_ms: 10000
+    budget_ref: latency_budget_chat.yaml
+    supports_keypad_entry: false
+
+  email:
+    redaction_mode: batch
+    budget_ms: 30000
+    budget_ref: latency_budget_chat.yaml
+    supports_keypad_entry: false
