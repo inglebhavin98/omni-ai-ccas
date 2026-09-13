@@ -1,0 +1,581 @@
+{
+  "schema_version": "1.0",
+  "taxonomy_id": "retail-fixture",
+  "domain": "retail",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "intent_id": "fulfilment",
+      "level": 1,
+      "parent_id": null,
+      "label": "Fulfilment",
+      "description": "Getting things delivered.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 520,
+        "call_count": 480,
+        "share_of_total": 0.52,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.9,
+        "complexity": 0.2,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.52,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "fulfilment.tracking",
+      "level": 2,
+      "parent_id": "fulfilment",
+      "label": "Tracking",
+      "description": "Where something has got to.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 400,
+        "call_count": 380,
+        "share_of_total": 0.4,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.92,
+        "complexity": 0.15,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.4,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "fulfilment.tracking.status",
+      "level": 3,
+      "parent_id": "fulfilment.tracking",
+      "label": "Delivery status",
+      "description": "Caller asks where their delivery is or when it will arrive.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 400,
+        "call_count": 380,
+        "share_of_total": 0.4,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.92,
+        "complexity": 0.15,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.4,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [
+        {
+          "name": "order_reference",
+          "slot_type": "identifier",
+          "required": true,
+          "elicitation_prompt": "What's the reference for that, starting with O-R-D?",
+          "reprompt": "Sorry, could you give me that reference again?",
+          "validation_regex": "^[A-Z0-9-]{6,20}$|^\\[ACCOUNT_REF_\\d+\\]$",
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": true,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [
+        "get_order_status"
+      ],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "fulfilment.address",
+      "level": 2,
+      "parent_id": "fulfilment",
+      "label": "Delivery address",
+      "description": "Changing where something goes.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 120,
+        "call_count": 100,
+        "share_of_total": 0.12,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.7,
+        "complexity": 0.5,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.12,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "phased_agentic"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "fulfilment.address.change",
+      "level": 3,
+      "parent_id": "fulfilment.address",
+      "label": "Change delivery address",
+      "description": "Caller wants to redirect an undispatched delivery.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 120,
+        "call_count": 100,
+        "share_of_total": 0.12,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.7,
+        "complexity": 0.5,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.12,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "phased_agentic"
+      },
+      "slots": [
+        {
+          "name": "order_reference",
+          "slot_type": "identifier",
+          "required": true,
+          "elicitation_prompt": "What's the reference for that, starting with O-R-D?",
+          "reprompt": "Sorry, could you give me that reference again?",
+          "validation_regex": "^[A-Z0-9-]{6,20}$|^\\[ACCOUNT_REF_\\d+\\]$",
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": true,
+          "max_attempts": 3
+        },
+        {
+          "name": "address_line_1",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "What's the first line of the new address?",
+          "reprompt": null,
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "postal_code",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "And the postcode?",
+          "reprompt": null,
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "country",
+          "slot_type": "string",
+          "required": true,
+          "elicitation_prompt": "Which country is that in?",
+          "reprompt": null,
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [
+        "update_delivery_address"
+      ],
+      "risk_tier": "high",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "returns",
+      "level": 1,
+      "parent_id": null,
+      "label": "Returns",
+      "description": "Sending things back.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 300,
+        "call_count": 280,
+        "share_of_total": 0.3,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.45,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.3,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "returns.initiate",
+      "level": 2,
+      "parent_id": "returns",
+      "label": "Start a return",
+      "description": "Beginning the return process.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 300,
+        "call_count": 280,
+        "share_of_total": 0.3,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.45,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.3,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "low",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "returns.initiate.open",
+      "level": 3,
+      "parent_id": "returns.initiate",
+      "label": "Open a return",
+      "description": "Caller wants to send an item back.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 300,
+        "call_count": 280,
+        "share_of_total": 0.3,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.75,
+        "complexity": 0.45,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.3,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "immediate_migration"
+      },
+      "slots": [
+        {
+          "name": "order_reference",
+          "slot_type": "identifier",
+          "required": true,
+          "elicitation_prompt": "What's the reference for that, starting with O-R-D?",
+          "reprompt": "Sorry, could you give me that reference again?",
+          "validation_regex": "^[A-Z0-9-]{6,20}$|^\\[ACCOUNT_REF_\\d+\\]$",
+          "enum_values": null,
+          "pii_entity": "account_ref",
+          "dtmf_capturable": true,
+          "max_attempts": 3
+        },
+        {
+          "name": "line_item_id",
+          "slot_type": "identifier",
+          "required": true,
+          "elicitation_prompt": "Which item on that is it?",
+          "reprompt": null,
+          "validation_regex": null,
+          "enum_values": null,
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        },
+        {
+          "name": "reason_code",
+          "slot_type": "enum",
+          "required": true,
+          "elicitation_prompt": "What's the reason — damaged, wrong item, no longer needed, or late?",
+          "reprompt": null,
+          "validation_regex": null,
+          "enum_values": [
+            "damaged",
+            "wrong_item",
+            "no_longer_needed",
+            "late"
+          ],
+          "pii_entity": null,
+          "dtmf_capturable": false,
+          "max_attempts": 3
+        }
+      ],
+      "required_tools": [
+        "start_return"
+      ],
+      "risk_tier": "medium",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "disputes",
+      "level": 1,
+      "parent_id": null,
+      "label": "Disputes",
+      "description": "Contested charges and escalations.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 60,
+        "call_count": 55,
+        "share_of_total": 0.06,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.2,
+        "complexity": 0.9,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.06,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "phased_agentic"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "regulated",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "disputes.chargeback",
+      "level": 2,
+      "parent_id": "disputes",
+      "label": "Chargeback",
+      "description": "A formal payment dispute.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 60,
+        "call_count": 55,
+        "share_of_total": 0.06,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.2,
+        "complexity": 0.9,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.06,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "phased_agentic"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "regulated",
+      "escalation": {
+        "min_intent_confidence": 0.82,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": false,
+        "target_queue": null,
+        "required_skills": []
+      }
+    },
+    {
+      "intent_id": "disputes.chargeback.raise",
+      "level": 3,
+      "parent_id": "disputes.chargeback",
+      "label": "Raise a dispute",
+      "description": "Caller wants to formally dispute a payment.",
+      "exemplars": [],
+      "cluster_id": null,
+      "centroid": null,
+      "volume": {
+        "utterance_count": 60,
+        "call_count": 55,
+        "share_of_total": 0.06,
+        "avg_turns_to_resolve": null,
+        "historical_escalation_rate": null
+      },
+      "automation": {
+        "feasibility": 0.2,
+        "complexity": 0.9,
+        "confidence": 0.9,
+        "rationale": "fixture",
+        "volume_share": 0.06,
+        "thresholds": {
+          "volume_share": 0.05,
+          "complexity": 0.5
+        },
+        "quadrant": "phased_agentic"
+      },
+      "slots": [],
+      "required_tools": [],
+      "risk_tier": "regulated",
+      "escalation": {
+        "min_intent_confidence": 0.0,
+        "max_clarifications": 2,
+        "max_tool_failures": 2,
+        "frustration_threshold": 0.7,
+        "auto_escalate": true,
+        "target_queue": "escalations",
+        "required_skills": []
+      }
+    }
+  ],
+  "embedding_model": "fixture",
+  "clusterer": "hdbscan",
+  "clusterer_params": {
+    "fixture": true
+  },
+  "labeler_model": "fixture",
+  "coverage": 0.88,
+  "noise_ratio": 0.12,
+  "source_call_ids": [
+    "fixture"
+  ],
+  "generated_at": "2026-09-12T19:48:01.374576Z"
+}
