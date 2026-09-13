@@ -34,7 +34,7 @@ ingestion/  redaction/         mining/          tools/ policies/
 | [`policies/`](policies/README.md) | M4 | 397 | Pure decision functions — confidence, risk, retry, sentiment |
 | [`nodes/`](nodes/README.md) | M4 | 701 | One graph node per turn behaviour |
 | [`graph/`](graph/README.md) | M4 | 717 | `StateGraph` assembly, routing, checkpointing |
-| [`voice/`](voice/README.md) | M5 | 1,173 | LiveKit transport, VAD, barge-in, DTMF, turn loop |
+| [`voice/`](voice/README.md) | M5 | 1,173 | LiveKit transport, VAD, barge-in, DTMF, turn loop. **Frozen — [ADR-0018](../../docs/adr/0018-freeze-voice-pivot-to-chat.md)**; runs under `make voice` |
 | [`evals/`](evals/README.md) | M6 | 214 | Provider parity; Ragas/DeepEval land with the rest of M6 |
 | `copilot/` | M6 | stub | CTI handoff and CRM summary. Not built — the package exists so the boundary does |
 | `orchestration/` | — | stub | Superseded by `tools/` `policies/` `nodes/` `graph/`. Kept as a namespace only |

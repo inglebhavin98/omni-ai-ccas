@@ -71,10 +71,18 @@ and [ADR-0004](docs/adr/0004-dataset-role-separation.md).
 | 2 | M1 ingestion · M2 zero-leakage redaction | **shipped** |
 | 3 | M3 intent mining & taxonomy | **shipped** (needs a real corpus to produce a real taxonomy) |
 | 4 | M4 LangGraph agentic mesh | **shipped** |
-| 5 | M5 LiveKit voice engine | **shipped** (vendor adapters unverified against live services) |
+| 5 | M5 LiveKit voice engine | **shipped, then frozen** ([ADR-0018](docs/adr/0018-freeze-voice-pivot-to-chat.md)) — complete but paused; vendor adapters never ran against a live service. Kept green under `make voice` |
 | 6 | M6 copilot & evaluation suite | in progress — `evals/parity.py` shipped, `copilot/` is a stub |
 
 Redaction runs in two modes (ADR-0007): **regex only on the call path** (111 µs p99,
 inside the 3 ms slice) and **regex + local NER in batch** (7.0 ms) for anything stored,
 mined, or shown to a human. Zero leakage is enforced by contract validators and proved
 by a Hypothesis fuzz over generated identifiers.
+
+## Licence
+
+MIT — see [`LICENSE`](LICENSE).
+
+The upstream corpora are **not** covered by it and carry their own terms; none of their
+data is committed. `domains/retail/taxonomy.json` is derived from the Bitext dataset.
+See [`NOTICE.md`](NOTICE.md).

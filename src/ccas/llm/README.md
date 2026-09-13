@@ -31,7 +31,10 @@ divergent, and leaves the denominator
 silently and far away from the cause.
 
 Hard-coding a model id outside `configs/models.yaml` is a defect. Free models serve the
-offline and chat paths; the voice call path needs a low-latency provider.
+offline and chat paths; the voice call path needs a low-latency provider. Since
+[ADR-0018](../../../docs/adr/0018-freeze-voice-pivot-to-chat.md) froze voice, that
+constraint no longer gates model selection for the rest of the platform — which is what
+makes the ~2,025 ms free models workable on chat.
 
 ```bash
 make evals                     # provider parity

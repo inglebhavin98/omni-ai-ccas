@@ -31,6 +31,7 @@ make test-fast      # unit only
 make security       # leakage + domain-agnosticism
 make latency        # budget gate
 make evals          # provider parity
+make voice          # the frozen voice channel (ADR-0018), excluded from make test
 ```
 
 If `make check` dies at the lint step with an `en-core-web-sm` fetch error, that is a
