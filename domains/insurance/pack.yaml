@@ -1,0 +1,115 @@
+# Insurance domain pack.
+#
+# Created because the AIxBlock corpus turned out to be insurance sales calls regardless
+# of its filenames -- 100% of `retail.jsonl` and 84% of `healthcare.jsonl` mention
+# policies, premiums or coverage. Mining that into the retail pack would have produced an
+# insurance taxonomy wearing a retail label, which is worse than no taxonomy because it
+# would look authoritative. See docs/adr/0013-aixblock-corpus-findings.md.
+schema_version: "1.0"
+domain: insurance
+version: "0.1.0"
+display_name: Insurance
+locales: ["en-US"]
+taxonomy_ref: taxonomy.json
+
+greeting: >-
+  Thanks for calling. Tell me what you need and I'll help or put you through to someone
+  who can.
+
+confidence:
+  route: 0.85            # a wrong route here can misstate cover
+  clarify_floor: 0.45
+  slot_accept: 0.75
+
+max_turns: 30
+
+compliance:
+  regimes: [gdpr, sox]
+  transcript_retention_days: 2555
+  audio_retention_days: 365
+  recording_consent_required: true
+  consent_prompt: >-
+    This call is recorded for training and compliance.
+
+queues:
+  - name: tier-1
+    display_name: General Enquiries
+    skills: [general]
+    min_verification: none
+    max_risk_tier: medium
+  - name: licensed-advice
+    display_name: Licensed Advisor Line
+    skills: [licensed_advisor]
+    min_verification: strong
+    max_risk_tier: regulated
+  - name: claims
+    display_name: Claims Handling
+    skills: [claims]
+    min_verification: strong
+    max_risk_tier: high
+
+redaction_patterns:
+  - name: policy_reference
+    pattern: '\b(?:POL|PLCY)[- ]?\d{6,12}\b'
+    entity_type: account_ref
+    score: 0.98
+  - name: claim_reference
+    pattern: '\bCLM[- ]?\d{6,12}\b'
+    entity_type: account_ref
+    score: 0.98
+
+tools:
+  - name: get_policy_status
+    description: Look up whether a policy is active, lapsed or pending, by its reference.
+    domain: insurance
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 1200
+    requires_verification: strong
+    risk_tier: medium
+    pii_output_fields: [policyholder_name]
+    input_schema:
+      type: object
+      properties:
+        policy_reference: { type: string }
+      required: [policy_reference]
+      additionalProperties: false
+
+  - name: get_premium_schedule
+    description: Return the premium amount and next due date for a policy.
+    domain: insurance
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 1200
+    requires_verification: strong
+    risk_tier: medium
+    input_schema:
+      type: object
+      properties:
+        policy_reference: { type: string }
+      required: [policy_reference]
+      additionalProperties: false
+
+  - name: request_callback_from_advisor
+    description: >-
+      Book a callback from a licensed advisor. Used whenever a caller asks for advice on
+      what cover to buy, which this platform must never give.
+    domain: insurance
+    idempotent: true
+    side_effecting: true
+    timeout_ms: 1500
+    requires_verification: soft
+    risk_tier: high
+    input_schema:
+      type: object
+      properties:
+        when_iso8601: { type: string }
+        topic: { type: string }
+      required: [when_iso8601, topic]
+      additionalProperties: false
+
+prompts:
+  router: >-
+    Classify the caller's request into exactly one intent from the supplied taxonomy.
+    Anything asking what cover someone should buy, or whether a policy suits them, is
+    advice: route it to the licensed advisor line rather than answering.

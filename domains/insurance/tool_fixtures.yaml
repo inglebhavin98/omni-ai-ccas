@@ -1,0 +1,24 @@
+# Deterministic responses for the mock backend. Development and tests only.
+tools:
+  get_policy_status:
+    - when: { policy_reference: "POL-404404" }
+      status: not_found
+      error_code: unknown_reference
+    - data:
+        status: active
+        policyholder_name: Ines Barros
+        cover_type: term_life
+        inception_date: "2021-04-02"
+
+  get_premium_schedule:
+    - data:
+        amount_minor_units: 4250
+        currency: USD
+        frequency: monthly
+        next_due: "2026-10-01"
+
+  request_callback_from_advisor:
+    - data: { booked: true, reference: CB-771204 }
+
+  transfer_to_human:
+    - data: { queued: true, position: 2, estimated_wait_s: 70 }
