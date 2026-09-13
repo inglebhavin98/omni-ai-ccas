@@ -13,9 +13,21 @@ healthcare, banking, telecom, utilities, and SaaS by loading a different domain 
 
 ```bash
 uv sync --all-extras          # install (uv is the ONLY package manager)
-cp .env.example .env          # fill provider keys
-docker compose up -d          # qdrant · redis · livekit-server · otel-collector
+cp .env.example .env          # set OPENROUTER_API_KEY; the rest have working defaults
+make workbench                # chat console at http://127.0.0.1:8000
 ```
+
+**The chat channel needs nothing else** — no Docker, no vector store, no vendor
+credentials. It runs against the mock tool backend with one LLM key.
+
+```bash
+docker compose up -d                  # qdrant · redis · otel-collector, when you want them
+docker compose --profile voice up -d  # adds livekit-server (frozen channel, ADR-0018)
+```
+
+Every `make` target runs `uv run --frozen`. Without `--frozen`, uv re-resolves the
+`en-core-web-sm` direct URL on every invocation, and a slow fetch kills the command
+*before* it runs anything — which looks like a hang, not a network error.
 
 ## Common commands
 

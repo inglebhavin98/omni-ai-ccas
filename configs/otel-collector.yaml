@@ -1,0 +1,27 @@
+# Local collector: accept OTLP and print to the console. No exporter credentials, so
+# nothing leaves the machine -- which is what makes it safe to run against real traces
+# while CLAUDE.md Rule 2 is still being proven.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    timeout: 5s
+
+exporters:
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

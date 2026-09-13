@@ -1,0 +1,59 @@
+# Local development services. Nothing here is a production topology.
+#
+# The chat channel needs NONE of this -- it runs against the mock tool backend with only
+# an LLM key set. Start these when you want the semantic cache, vector store or traces,
+# and see the `voice` profile note below before reaching for LiveKit.
+#
+#   docker compose up -d                  qdrant, redis, otel-collector
+#   docker compose --profile voice up -d  adds livekit-server (frozen channel, ADR-0018)
+
+name: omni-ai-ccas
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "127.0.0.1:6333:6333"   # loopback only: this has no auth
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      # No curl in the image; /proc/net/tcp shows the listener without adding a dependency.
+      test: ["CMD-SHELL", "grep -q ':18BD' /proc/net/tcp || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./configs/otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"   # OTLP gRPC -- matches OTEL_EXPORTER_OTLP_ENDPOINT
+
+  # Frozen channel (ADR-0018). Not started by default: voice is not a live constraint on
+  # core work, and this image is the heaviest thing in the file.
+  livekit:
+    image: livekit/livekit-server:v1.8.0
+    profiles: ["voice"]
+    command: ["--dev", "--bind", "0.0.0.0"]
+    ports:
+      - "127.0.0.1:7880:7880"
+    environment:
+      # --dev uses the well-known devkey/secret pair, which is why this is loopback-only
+      # and must never be exposed. It matches LIVEKIT_API_KEY in .env.example.
+      LIVEKIT_KEYS: "devkey: secret"
+
+volumes:
+  qdrant-data:
