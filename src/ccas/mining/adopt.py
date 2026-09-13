@@ -192,8 +192,6 @@ def adopt_taxonomy(
         provenance=TaxonomyProvenance.ADOPTED,
         adopted_from=source.value,
         derivation_split=DERIVATION_SPLIT,
-        coverage=1.0,
-        noise_ratio=0.0,
         source_call_ids=(),
         generated_at=utcnow(),
     )

@@ -21,9 +21,33 @@ from ccas.config.domain_loader import load_pack
 from ccas.ingestion.datasets import DatasetRoleError
 from ccas.mining.adopt import DERIVATION_SPLIT, adopt_taxonomy, holdout_rows, split_of
 from ccas.schemas.call_log import DatasetSource
-from ccas.schemas.taxonomy import IntentTaxonomy, TaxonomyProvenance
+from ccas.schemas.taxonomy import (
+    AutomationScore,
+    IntentNode,
+    IntentTaxonomy,
+    TaxonomyProvenance,
+    VolumeStats,
+)
 
 REPO = Path(__file__).resolve().parents[3]
+
+
+def taxonomy_nodes() -> tuple[IntentNode, ...]:
+    """One minimal L1 node, so a contract test is about the field under test."""
+    return (
+        IntentNode(
+            intent_id="billing",
+            level=1,
+            label="Billing",
+            description="Contacts about billing.",
+            volume=VolumeStats(utterance_count=1, call_count=1, share_of_total=1.0),
+            automation=AutomationScore(
+                feasibility=0.5, complexity=0.5, confidence=0.5, rationale="r", volume_share=1.0
+            ),
+        ),
+    )
+
+
 BITEXT = REPO / "data" / "raw" / "bitext" / "customer_support.jsonl"
 
 pytestmark = pytest.mark.skipif(not BITEXT.is_file(), reason="bitext corpus not hydrated")
@@ -155,3 +179,38 @@ def test_identifying_slots_are_marked_for_redaction(taxonomy: IntentTaxonomy) ->
     for name in ("order_number", "invoice_number", "person_name"):
         if name in by_name:
             assert by_name[name].pii_entity is not None, f"{name} must be redacted"
+
+
+def test_an_adopted_taxonomy_reports_no_coverage(taxonomy: IntentTaxonomy) -> None:
+    """Coverage means "fraction of utterances the clustering assigned rather than noise".
+
+    No clustering happened here, so the field has no value to report. Setting 1.0 would
+    read as a perfect score next to a mined taxonomy's 0.197 and invite a comparison
+    between numbers that are not commensurable -- one field, two meanings, which is the
+    defect `provenance` exists to prevent and would here have caused.
+    """
+    assert taxonomy.coverage is None
+    assert taxonomy.noise_ratio is None
+
+
+def test_a_mined_taxonomy_must_still_report_coverage() -> None:
+    """Nullable for adopted must not become optional for mined."""
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    from ccas.schemas.taxonomy import TaxonomyProvenance
+
+    with _pytest.raises(ValidationError, match="coverage"):
+        IntentTaxonomy(
+            taxonomy_id="t",
+            domain="retail",
+            version="0.1.0",
+            nodes=taxonomy_nodes(),
+            provenance=TaxonomyProvenance.MINED,
+            embedding_model="bge",
+            labeler_model="m",
+            clusterer="hdbscan",
+            clusterer_params={"min_cluster_size": 25},
+            coverage=None,
+            noise_ratio=None,
+        )

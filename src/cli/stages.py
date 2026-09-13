@@ -203,7 +203,11 @@ def _stage_intent(ctx: StageContext) -> StageResult:
         f"mined by        {taxonomy.embedding_model} -> {taxonomy.clusterer} "
         f"-> {taxonomy.labeler_model}",
         f"nodes           {len(taxonomy.nodes)}  ({len(leaves)} leaves)",
-        f"coverage        {taxonomy.coverage:.1%}  (noise {taxonomy.noise_ratio:.1%})",
+        (
+            f"coverage        {taxonomy.coverage:.1%}  (noise {taxonomy.noise_ratio:.1%})"
+            if taxonomy.coverage is not None
+            else "coverage        n/a (adopted, nothing was clustered)"
+        ),
         f"quadrants       {quadrants}",
         f"route threshold {ctx.domain.pack.confidence.route}",
         "",

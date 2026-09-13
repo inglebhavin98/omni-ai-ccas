@@ -1836,8 +1836,8 @@
   "clusterer": "none",
   "clusterer_params": {},
   "labeler_model": "",
-  "coverage": 1.0,
-  "noise_ratio": 0.0,
+  "coverage": null,
+  "noise_ratio": null,
   "source_call_ids": [],
-  "generated_at": "2026-09-13T15:58:53.788342Z"
+  "generated_at": "2026-09-13T18:38:56.901531Z"
 }

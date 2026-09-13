@@ -251,8 +251,15 @@ class IntentTaxonomy(Frozen):
     clusterer: Literal["hdbscan", "bertopic", "none"] = "none"
     clusterer_params: dict[str, JsonValue] = Field(default_factory=dict)
     labeler_model: str = ""
-    coverage: float = Field(ge=0.0, le=1.0)
-    noise_ratio: float = Field(ge=0.0, le=1.0)
+    coverage: float | None = Field(default=None, ge=0.0, le=1.0)
+    """Fraction of utterances the clustering assigned rather than left as noise.
+
+    ``None`` on an adopted taxonomy, because nothing was clustered and the field has no
+    value to report. Reporting 1.0 there would read as a perfect score beside a mined
+    taxonomy's 0.197 and invite a comparison between numbers that do not mean the same
+    thing."""
+
+    noise_ratio: float | None = Field(default=None, ge=0.0, le=1.0)
     source_call_ids: tuple[str, ...] = ()
     generated_at: datetime = Field(default_factory=utcnow)
 
@@ -279,6 +286,11 @@ class IntentTaxonomy(Frozen):
                 )
             if self.adopted_from:
                 raise ValueError("a mined taxonomy has no adopted_from")
+            if self.coverage is None:
+                raise ValueError(
+                    f"mined taxonomy {self.taxonomy_id!r} must report coverage -- it is how "
+                    "well the clustering covered the corpus, and nothing else says"
+                )
             return self
 
         if not self.adopted_from:
@@ -319,6 +331,10 @@ class IntentTaxonomy(Frozen):
 
     @model_validator(mode="after")
     def _check_coverage_consistency(self) -> Self:
+        if self.coverage is None and self.noise_ratio is None:
+            return self
+        if self.coverage is None or self.noise_ratio is None:
+            raise ValueError("coverage and noise_ratio are reported together or not at all")
         total = self.coverage + self.noise_ratio
         if abs(total - 1.0) > 1e-6:
             raise ValueError(f"coverage + noise_ratio must equal 1.0, got {total}")
