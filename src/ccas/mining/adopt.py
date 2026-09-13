@@ -25,7 +25,7 @@ import hashlib
 import itertools
 import json
 import re
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
 
 from ccas.ingestion.datasets import DatasetRole, require_role
@@ -84,7 +84,7 @@ def _rows(path: Path, limit: int | None) -> Iterator[tuple[str, dict[str, object
             yield f"{path.stem}:{index}", json.loads(line)
 
 
-def _slot_for(name: str, pii: Mapping[str, PiiEntityType]) -> SlotSpec:
+def _slot_for(name: str, pii: Mapping[str, PiiEntityType], aliases: Mapping[str, str]) -> SlotSpec:
     """A published placeholder becomes a slot. The prompt is generic by necessity.
 
     The corpus says *where* a parameter belongs, never how to ask for it, so the wording
@@ -92,7 +92,9 @@ def _slot_for(name: str, pii: Mapping[str, PiiEntityType]) -> SlotSpec:
     vertical talks to its customers.
     """
     readable = name.strip().lower()
-    slug = _slug(name)
+    # Rename before anything else keys off it: the PII marker and the tool-coverage
+    # check both match on the final name.
+    slug = aliases.get(_slug(name), _slug(name))
     return SlotSpec(
         name=slug,
         slot_type=SlotType.STRING,
@@ -104,7 +106,9 @@ def _slot_for(name: str, pii: Mapping[str, PiiEntityType]) -> SlotSpec:
 
 
 def slots_from_placeholders(
-    names: Iterable[str], pii: Mapping[str, PiiEntityType] | None = None
+    names: Iterable[str],
+    pii: Mapping[str, PiiEntityType] | None = None,
+    aliases: Mapping[str, str] | None = None,
 ) -> tuple[SlotSpec, ...]:
     """One slot per distinct parameter, deduplicated by slug.
 
@@ -114,9 +118,36 @@ def slots_from_placeholders(
     """
     by_slug: dict[str, SlotSpec] = {}
     for name in sorted(names):
-        slot = _slot_for(name, pii or {})
+        slot = _slot_for(name, pii or {}, aliases or {})
         by_slug.setdefault(slot.name, slot)
     return tuple(by_slug.values())
+
+
+def _check_binding(
+    intent_id: str,
+    tools: Sequence[str],
+    slots: Sequence[SlotSpec],
+    pack_tools: Mapping[str, object],
+) -> None:
+    """Refuse a binding whose tool needs a parameter the corpus never annotated.
+
+    The tempting fix is to add the missing slots. That would make an adopted taxonomy
+    assert the corpus annotated something it did not, which is the one thing adoption
+    must not do -- so the binding fails loudly and the pack author decides what to do.
+    """
+    names = {slot.name for slot in slots}
+    for tool in tools:
+        spec = pack_tools.get(tool)
+        required = getattr(spec, "input_schema", {}).get("required") if spec else None
+        if not isinstance(required, list):
+            continue
+        uncovered = sorted({str(a) for a in required} - names)
+        if uncovered:
+            raise ValueError(
+                f"intent {intent_id!r} cannot cover {tool!r}: the corpus annotates no "
+                f"parameter for {uncovered}. Bind a tool the corpus can feed, or add the "
+                f"parameter to the corpus -- do not invent the slot"
+            )
 
 
 def adopt_taxonomy(
@@ -127,6 +158,9 @@ def adopt_taxonomy(
     version: str = "0.1.0",
     min_rows: int = 5,
     slot_pii: Mapping[str, PiiEntityType] | None = None,
+    slot_aliases: Mapping[str, str] | None = None,
+    intent_tools: Mapping[str, Sequence[str]] | None = None,
+    pack_tools: Mapping[str, object] | None = None,
 ) -> IntentTaxonomy:
     """Build an ``IntentTaxonomy`` from a corpus's published category/intent labels."""
     # Gate 1: only a corpus admitted as ground truth has labels worth adopting.
@@ -168,10 +202,15 @@ def adopt_taxonomy(
         )
 
     for (category, intent), n in sorted(counts.items()):
-        slots = slots_from_placeholders(placeholders.get((category, intent), ()), slot_pii)
+        intent_id = f"{category}.{intent}"
+        slots = slots_from_placeholders(
+            placeholders.get((category, intent), ()), slot_pii, slot_aliases
+        )
+        tools = tuple((intent_tools or {}).get(intent_id, ()))
+        _check_binding(intent_id, tools, slots, pack_tools or {})
         nodes.append(
             IntentNode(
-                intent_id=f"{category}.{intent}",
+                intent_id=intent_id,
                 level=2,
                 parent_id=category,
                 label=intent.replace("_", " ").title(),
@@ -181,6 +220,7 @@ def adopt_taxonomy(
                 volume=_volume(n, total),
                 automation=_automation(n / total, slot_count=len(slots)),
                 slots=slots,
+                required_tools=tools,
             )
         )
 

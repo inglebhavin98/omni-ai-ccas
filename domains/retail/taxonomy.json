@@ -1143,7 +1143,7 @@
       },
       "slots": [
         {
-          "name": "invoice_number",
+          "name": "invoice_reference",
           "slot_type": "string",
           "required": true,
           "elicitation_prompt": "Could you give me the invoice number?",
@@ -1167,7 +1167,9 @@
           "max_attempts": 3
         }
       ],
-      "required_tools": [],
+      "required_tools": [
+        "get_invoice"
+      ],
       "risk_tier": "low",
       "escalation": {
         "min_intent_confidence": 0.82,
@@ -1209,7 +1211,7 @@
       },
       "slots": [
         {
-          "name": "invoice_number",
+          "name": "invoice_reference",
           "slot_type": "string",
           "required": true,
           "elicitation_prompt": "Could you give me the invoice number?",
@@ -1233,7 +1235,9 @@
           "max_attempts": 3
         }
       ],
-      "required_tools": [],
+      "required_tools": [
+        "get_invoice"
+      ],
       "risk_tier": "low",
       "escalation": {
         "min_intent_confidence": 0.82,
@@ -1275,7 +1279,7 @@
       },
       "slots": [
         {
-          "name": "order_number",
+          "name": "order_reference",
           "slot_type": "string",
           "required": true,
           "elicitation_prompt": "Could you give me the order number?",
@@ -1287,7 +1291,9 @@
           "max_attempts": 3
         }
       ],
-      "required_tools": [],
+      "required_tools": [
+        "cancel_order"
+      ],
       "risk_tier": "low",
       "escalation": {
         "min_intent_confidence": 0.82,
@@ -1329,7 +1335,7 @@
       },
       "slots": [
         {
-          "name": "order_number",
+          "name": "order_reference",
           "slot_type": "string",
           "required": true,
           "elicitation_prompt": "Could you give me the order number?",
@@ -1341,7 +1347,9 @@
           "max_attempts": 3
         }
       ],
-      "required_tools": [],
+      "required_tools": [
+        "get_order_status"
+      ],
       "risk_tier": "low",
       "escalation": {
         "min_intent_confidence": 0.82,
@@ -1424,7 +1432,7 @@
       },
       "slots": [
         {
-          "name": "order_number",
+          "name": "order_reference",
           "slot_type": "string",
           "required": true,
           "elicitation_prompt": "Could you give me the order number?",
@@ -1436,7 +1444,9 @@
           "max_attempts": 3
         }
       ],
-      "required_tools": [],
+      "required_tools": [
+        "get_order_status"
+      ],
       "risk_tier": "low",
       "escalation": {
         "min_intent_confidence": 0.82,
@@ -1839,5 +1849,5 @@
   "coverage": null,
   "noise_ratio": null,
   "source_call_ids": [],
-  "generated_at": "2026-09-13T18:38:56.901531Z"
+  "generated_at": "2026-09-13T19:48:30.705840Z"
 }

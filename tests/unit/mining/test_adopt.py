@@ -68,6 +68,7 @@ def taxonomy() -> IntentTaxonomy:
         source=DatasetSource.BITEXT,
         limit=4000,
         slot_pii=pack.slot_pii,
+        slot_aliases=pack.slot_aliases,
     )
 
 
@@ -176,7 +177,9 @@ def test_only_caller_side_placeholders_become_slots(taxonomy: IntentTaxonomy) ->
 def test_identifying_slots_are_marked_for_redaction(taxonomy: IntentTaxonomy) -> None:
     """Rule 2: a slot holding an identifier must force redaction of whatever fills it."""
     by_name = {slot.name: slot for node in taxonomy.nodes for slot in node.slots}
-    for name in ("order_number", "invoice_number", "person_name"):
+    # Names as the *pack* calls them: slot_aliases renames on the way in, and the PII
+    # marker has to survive that rename or capture stops forcing redaction.
+    for name in ("order_reference", "invoice_reference", "person_name"):
         if name in by_name:
             assert by_name[name].pii_entity is not None, f"{name} must be redacted"
 

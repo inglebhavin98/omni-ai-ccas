@@ -33,7 +33,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--raw", type=Path, default=Path("data/raw"))
     parser.add_argument("--domains", type=Path, default=Path("domains"))
     parser.add_argument("--out", type=Path, default=None, help="default: the pack's taxonomy_ref")
-    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            "read only the first N rows. NOT a sample -- Bitext is grouped by category, "
+            "so 4,000 rows yields 5 intents of 27. Use for a smoke test, never for a "
+            "taxonomy you intend to ship"
+        ),
+    )
     parser.add_argument("--version", default="0.1.0")
     parser.add_argument("--log-level", default="INFO")
     return parser
@@ -58,6 +67,9 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
             version=args.version,
             slot_pii=pack.slot_pii,
+            slot_aliases=pack.slot_aliases,
+            intent_tools=pack.intent_tools,
+            pack_tools=pack.tools_by_name,
         )
     except DatasetRoleError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -83,7 +95,16 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  provenance   adopted from {source.value}, split {taxonomy.derivation_split!r}")
     print(f"  hierarchy    {len(taxonomy.nodes)} nodes, {len(taxonomy.leaves())} intents")
     print(f"  slots        {sum(len(n.slots) for n in taxonomy.nodes)}")
-    print(f"  rows         {rows - held} derived / {held} held out for evaluation\n")
+    bound = [n for n in taxonomy.nodes if n.required_tools]
+    print(f"  tool-bound   {len(bound)} of {len(taxonomy.leaves())} intents can act")
+    print(f"  rows         {rows - held} derived / {held} held out for evaluation")
+    if args.limit:
+        print(
+            f"\n  WARNING: --limit {args.limit} truncates rather than samples. This corpus "
+            f"is grouped\n           by category, so the taxonomy holds only the intents "
+            f"that appear early."
+        )
+    print()
     return 0
 
 

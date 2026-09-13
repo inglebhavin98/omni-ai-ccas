@@ -45,3 +45,15 @@ tools:
       status: denied
       error_code: verification_failed
     - data: { verified: true, level: strong }
+
+  cancel_order:
+    - when: { order_reference: "[ACCOUNT_REF_1]" }
+      data: { cancelled: true, refund_due_minor_units: 4599, currency: GBP }
+    - data: { cancelled: true, refund_due_minor_units: 0, currency: GBP }
+
+  get_invoice:
+    - data:
+        status: paid
+        total_minor_units: 4599
+        currency: GBP
+        issued: "2026-08-30"

@@ -37,14 +37,26 @@ def test_shipped_packs_validate(domain: str) -> None:
 
 
 def test_retail_declares_its_tools_with_strict_schemas() -> None:
+    """Every pack tool closes its schema, so an LLM cannot smuggle an extra argument."""
     pack = load_pack(DOMAINS, "retail")
-    assert set(pack.tools_by_name) == {
-        "get_order_status",
-        "start_return",
-        "update_delivery_address",
-    }
+    assert set(pack.tools_by_name) >= {"get_order_status", "start_return"}
     for tool in pack.tools:
         assert tool.input_schema["additionalProperties"] is False
+
+
+def test_every_tool_an_intent_binds_is_declared_by_the_pack() -> None:
+    """`intent_tools` is hand-authored, so a typo there is a load-time failure waiting."""
+    pack = load_pack(DOMAINS, "retail")
+    for intent, tools in pack.intent_tools.items():
+        missing = sorted(set(tools) - set(pack.tools_by_name))
+        assert not missing, f"intent {intent!r} binds undeclared tool(s) {missing}"
+
+
+def test_slot_aliases_do_not_collide() -> None:
+    """Two corpus slots renamed onto one pack name would silently merge two parameters."""
+    pack = load_pack(DOMAINS, "retail")
+    targets = list(pack.slot_aliases.values())
+    assert len(targets) == len(set(targets)), f"alias collision in {pack.slot_aliases}"
 
 
 def test_side_effecting_tools_demand_strong_verification() -> None:

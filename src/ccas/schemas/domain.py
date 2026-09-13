@@ -109,6 +109,20 @@ class DomainPack(Frozen):
     queues: tuple[QueueSpec, ...] = Field(min_length=1)
     redaction_patterns: tuple[PatternSpec, ...] = ()
 
+    slot_aliases: dict[Slug, Slug] = Field(default_factory=dict)
+    """Corpus slot name -> this pack's name for the same parameter.
+
+    An adopted taxonomy names parameters the way its corpus does; a pack's tools name
+    them the way the pack does, and the two rarely agree. Slot/tool coverage
+    is matched on exact names, so one of the two has to move, and renaming the corpus's
+    name is the side that invents nothing (ADR-0020)."""
+
+    intent_tools: dict[Slug, tuple[Slug, ...]] = Field(default_factory=dict)
+    """Intent id -> the tools that serve it.
+
+    A corpus has no idea this pack exists, so it cannot say which tool answers an intent.
+    That is pack authorship, and it belongs here rather than in the adopter."""
+
     slot_pii: dict[Slug, PiiEntityType] = Field(default_factory=dict)
     """Slot names whose captured value is an identifier, and what kind.
 

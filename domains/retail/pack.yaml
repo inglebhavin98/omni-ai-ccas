@@ -50,9 +50,27 @@ queues:
 # because the core may not know what this vertical calls things (Rule 1). A slot with an
 # entity is redacted wholesale on capture, which is what catches a bare reference number
 # that matches no pattern.
+# The corpus names a parameter `order_number`; this pack's tools take `order_reference`.
+# Slot/tool coverage matches on exact names, so one side has to move -- and renaming the
+# corpus's name is the side that invents nothing (ADR-0020).
+slot_aliases:
+  order_number: order_reference
+  invoice_number: invoice_reference
+
+# Which tool serves which intent. The corpus has no idea this pack exists, so it cannot
+# say -- this is pack authorship. Only intents whose corpus-annotated parameters actually
+# cover a tool's required arguments appear here; the adopter refuses the rest rather than
+# letting anyone invent the missing slot.
+intent_tools:
+  order.track_order: [get_order_status]
+  order.cancel_order: [cancel_order]
+  order.change_order: [get_order_status]
+  invoice.check_invoice: [get_invoice]
+  invoice.get_invoice: [get_invoice]
+
 slot_pii:
-  order_number: account_ref
-  invoice_number: account_ref
+  order_reference: account_ref
+  invoice_reference: account_ref
   person_name: person
 
 redaction_patterns:
@@ -84,6 +102,38 @@ tools:
       properties:
         order_reference: { type: string, pattern: '^[A-Z0-9-]{6,20}$' }
       required: [order_reference]
+      additionalProperties: false
+
+  - name: cancel_order
+    description: Cancel an order that has not yet dispatched, by its reference.
+    domain: retail
+    idempotent: true
+    side_effecting: true
+    # Destructive and irreversible from the caller's side, so it carries the same posture
+    # as start_return. The idempotency key is implied by side_effecting, not declared.
+    timeout_ms: 1500
+    requires_verification: strong
+    risk_tier: high
+    input_schema:
+      type: object
+      properties:
+        order_reference: { type: string }
+      required: [order_reference]
+      additionalProperties: false
+
+  - name: get_invoice
+    description: Return an invoice's status, total and issue date, by its reference.
+    domain: retail
+    idempotent: true
+    side_effecting: false
+    timeout_ms: 1200
+    requires_verification: soft
+    risk_tier: low
+    input_schema:
+      type: object
+      properties:
+        invoice_reference: { type: string }
+      required: [invoice_reference]
       additionalProperties: false
 
   - name: start_return
