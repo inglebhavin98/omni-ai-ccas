@@ -5,7 +5,11 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from ccas.llm.base import LLMProviderError, ProviderUnavailableError
+from ccas.llm.base import (
+    LLMProviderError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from ccas.llm.openrouter_provider import OpenRouterProvider, build_payload
 from ccas.llm.prompt import authored
 from ccas.schemas.llm import (
@@ -217,6 +221,22 @@ async def test_a_read_timeout_never_escapes_as_an_httpx_error() -> None:
 
     p = provider(handler, max_attempts=2, backoff_ms=1)
     with pytest.raises(LLMProviderError, match="did not respond within"):
+        await p.complete(request())
+
+
+async def test_an_exhausted_timeout_is_distinguishable_from_a_bad_answer() -> None:
+    """A row nobody served must be tellable apart from one served wrongly (ADR-0014).
+
+    The eval harness drops the first from its denominator and scores the second. Both
+    arrived as a bare ``LLMProviderError``, so 19 of 40 rows in the first live router run
+    were counted as misclassifications when the provider had in fact never answered.
+    """
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("slow")
+
+    p = provider(handler, max_attempts=2, backoff_ms=1)
+    with pytest.raises(ProviderTimeoutError):
         await p.complete(request())
 
 

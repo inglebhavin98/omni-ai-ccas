@@ -13,7 +13,12 @@ from typing import Any
 
 import httpx
 
-from ccas.llm.base import LLMProvider, LLMProviderError, ProviderUnavailableError
+from ccas.llm.base import (
+    LLMProvider,
+    LLMProviderError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from ccas.schemas.llm import LLMChunk, LLMRequest, LLMResponse, LLMUsage, ProviderName
 
 __all__ = ["VLLMProvider", "build_payload"]
@@ -87,6 +92,11 @@ class VLLMProvider(LLMProvider):
             )
         except httpx.ConnectError as exc:
             raise ProviderUnavailableError(f"vLLM unreachable at {self._base_url}") from exc
+        except httpx.TimeoutException as exc:
+            # There is no retry ladder here, so one deadline is the whole budget. Converted
+            # for the same reason OpenRouter converts: a raw httpx error propagating out of
+            # a graph node takes the whole call down.
+            raise ProviderTimeoutError(f"vLLM did not respond within {timeout_ms}ms") from exc
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         payload = build_payload(request, stream=False)

@@ -25,6 +25,7 @@ from ccas.llm.base import (
     LLMProvider,
     LLMProviderError,
     ProviderRateLimitedError,
+    ProviderTimeoutError,
     ProviderUnavailableError,
 )
 from ccas.llm.json_repair import JSON_INSTRUCTION, extract_json
@@ -178,7 +179,9 @@ class OpenRouterProvider(LLMProvider):
                 # Transient and common on a free tier: the upstream provider is queueing.
                 self.retries += 1
                 if attempt == self._max_attempts:
-                    raise LLMProviderError(
+                    # Never served, not served wrongly: an eval must drop this row rather
+                    # than score it as a misclassification (ADR-0014).
+                    raise ProviderTimeoutError(
                         f"{model} did not respond within {timeout_ms}ms after "
                         f"{self._max_attempts} attempt(s)"
                     ) from exc
