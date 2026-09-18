@@ -30,10 +30,16 @@ import numpy as np
 
 from ccas.config.domain_loader import load_domain
 from ccas.config.settings import Settings
-from ccas.evals.router_accuracy import RouterCase, RouterOutcome, naturalise, score_router
+from ccas.evals.router_accuracy import (
+    RouterCase,
+    RouterOutcome,
+    naturalise,
+    outcome_for_exception,
+    score_router,
+)
 from ccas.graph.router import IntentRouter
 from ccas.ingestion.datasets import DatasetRole, require_role
-from ccas.llm.base import LLMProviderError, ProviderRateLimitedError
+from ccas.llm.base import LLMProviderError
 from ccas.llm.bindings import load_bindings
 from ccas.llm.factory import build_provider
 from ccas.mining.adopt import DERIVATION_SPLIT, split_of
@@ -139,6 +145,7 @@ async def run(args: argparse.Namespace) -> int:
     print(f"  routing      {len(cases)} rows through {binding.provider.value}:{binding.model}\n")
 
     outcomes = []
+    errors: dict[str, int] = {}
     try:
         for n, case in enumerate(cases, 1):
             content = redaction.redact(case.utterance, redaction.new_allocator(vault))
@@ -150,15 +157,19 @@ async def run(args: argparse.Namespace) -> int:
                     confidence=prediction.confidence,
                     latency_ms=(time.perf_counter_ns() - started) // 1_000_000,
                 )
-            except ProviderRateLimitedError as exc:
-                outcome = RouterOutcome(unavailable=True, error=str(exc)[:120])
             except (LLMProviderError, ValueError, TimeoutError) as exc:
-                outcome = RouterOutcome(error=f"{type(exc).__name__}: {exc}"[:120])
+                outcome = outcome_for_exception(exc)
+                # Which way it failed is the whole diagnosis, and it was missing from the
+                # first live run's report -- 19 unserved rows were indistinguishable from
+                # 19 unparseable ones without re-deriving it from wall clock.
+                errors[type(exc).__name__] = errors.get(type(exc).__name__, 0) + 1
             outcomes.append((case, outcome))
+            # "-" is a row nobody served; it leaves the denominator, so it must not look
+            # like a wrong answer on the progress line either.
             mark = (
                 "."
                 if outcome.predicted == case.expected_intent
-                else ("~" if outcome.answered else "x")
+                else ("-" if outcome.unavailable else "~" if outcome.answered else "x")
             )
             print(mark, end="", flush=True)
             if n % 40 == 0:
@@ -169,6 +180,20 @@ async def run(args: argparse.Namespace) -> int:
 
     report = score_router(outcomes)
     print(f"  {report.summary()}\n")
+    if errors:
+        print("  failures by cause")
+        for name, count in sorted(errors.items(), key=lambda kv: -kv[1]):
+            # Not inferable from the name any more: whether a timeout left the denominator
+            # depends on whether this model answered anything else (ADR-0021).
+            served = (
+                "never served"
+                if "RateLimited" in name
+                else "timed out; unmeasured only if this model answered elsewhere"
+                if "Timeout" in name
+                else "served, scored"
+            )
+            print(f"    {count:>3}x  {name}  ({served})")
+        print()
     if report.measured:
         print("  weakest intents")
         for intent, score in report.worst_intents(5):
@@ -199,6 +224,7 @@ async def run(args: argparse.Namespace) -> int:
                     "exact_accuracy": report.exact_accuracy,
                     "category_accuracy": report.category_accuracy,
                     "p95_latency_ms": report.p95_latency_ms,
+                    "failures_by_cause": errors,
                     "per_intent": {i: [s.correct, s.total] for i, s in report.per_intent},
                     "confusions": [list(c) for c in report.confusions],
                 },

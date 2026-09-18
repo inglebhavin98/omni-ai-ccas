@@ -19,13 +19,14 @@ reference rather than editing it.
 | [0011](0011-voice-turn-loop.md) | The voice turn loop, and what the budget gate proves | accepted |
 | [0012](0012-openrouter-free-models.md) | OpenRouter and free models: what they can and cannot serve | accepted |
 | [0013](0013-aixblock-corpus-is-insurance-and-undiarized.md) | The AIxBlock corpus is insurance sales calls, and it is not diarized | accepted |
-| [0014](0014-parity-verdicts-and-throttling.md) | A throttled parity case is unmeasured, not divergent | accepted |
+| [0014](0014-parity-verdicts-and-throttling.md) | A throttled parity case is unmeasured, not divergent | amended by 0021 |
 | [0015](0015-natcs-is-supervision-not-a-trajectory.md) | NatCS is supervision, not a trajectory | accepted |
 | [0016](0016-aixblock-turn-recovery.md) | Recovering turns from an undiarized corpus, and the gap that defines an utterance | accepted |
 | [0017](0017-mean-centre-before-clustering.md) | Mean-centre embeddings before clustering | accepted |
 | [0018](0018-freeze-voice-pivot-to-chat.md) | Freeze voice, make chat the proving ground | accepted |
 | [0019](0019-channel-profiles.md) | Channel differences are data, not branches | accepted |
 | [0020](0020-adopt-a-published-label-set.md) | Adopting a published label set is not mining | accepted |
+| [0021](0021-a-timeout-is-read-against-the-run.md) | A timeout is unmeasured only if the model answered elsewhere | accepted |
 
 ## When to write one
 
