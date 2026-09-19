@@ -46,6 +46,7 @@ __all__ = [
     "TypeSafeError",
     "choice_request",
     "criteria_from_taxonomy",
+    "level_criteria",
     "routing_from",
 ]
 
@@ -74,6 +75,10 @@ class RoutingChoice:
     latency_ms: int
     input_tokens: int = 0
     output_tokens: int = 0
+    path: tuple[str, ...] = ()
+    """L1 -> leaf, when routed hierarchically. Empty for a flat choice."""
+
+    calls: int = 1
 
 
 def criteria_from_taxonomy(taxonomy: IntentTaxonomy) -> dict[str, str]:
@@ -86,6 +91,21 @@ def criteria_from_taxonomy(taxonomy: IntentTaxonomy) -> dict[str, str]:
     return {
         leaf.intent_id: (leaf.description or leaf.label or leaf.intent_id).strip()
         for leaf in taxonomy.leaves()
+    }
+
+
+def level_criteria(taxonomy: IntentTaxonomy, parent_id: str | None) -> dict[str, str]:
+    """One sibling set: the roots when ``parent_id`` is None, otherwise its children.
+
+    The unit a hierarchical Choice is asked over. Eleven categories, then two to six
+    leaves, instead of twenty-seven options of which twenty-six are irrelevant to any
+    given message -- which is jagged edge 5, "accuracy falls as the state grows with
+    content unrelated to the decision".
+    """
+    return {
+        node.intent_id: (node.description or node.label or node.intent_id).strip()
+        for node in taxonomy.nodes
+        if node.parent_id == parent_id
     }
 
 
@@ -179,6 +199,72 @@ class TypeSafeClient:
             latency_ms=latency_ms,
             input_tokens=usage.get("input_tokens", 0),
             output_tokens=usage.get("output_tokens", 0),
+        )
+
+    async def choose_hierarchical(
+        self, state: RedactedText, taxonomy: IntentTaxonomy
+    ) -> RoutingChoice:
+        """Descend the taxonomy, one Choice per level (greedy).
+
+        Greedy rather than beam: a beam explores K paths per level and can repair an
+        ambiguous early decision, which the docs show recovering 4 of 4 against greedy's
+        2 of 4 -- but it multiplies calls per level and this is a spike measuring whether
+        the shape helps at all. Beam is the obvious next step if it does.
+
+        ``confidence`` is the geometric mean of the chosen edge's probability at each
+        level, which is how the docs rank beam paths. **It is not comparable to the chat
+        router's confidence** and the pack's 0.82 route threshold must not be carried
+        over to it -- jagged edge 8 is explicit that thresholds do not transfer between
+        question formats.
+        """
+        parent: str | None = None
+        path: list[str] = []
+        edges: list[float] = []
+        confidences: list[float] = []
+        probabilities: dict[str, float] = {}
+        tokens_in = tokens_out = calls = 0
+        started = time.perf_counter_ns()
+
+        while True:
+            criteria = level_criteria(taxonomy, parent)
+            if not criteria:
+                break
+            if len(criteria) == 1:
+                # A Choice over one option spends a call to learn nothing.
+                only = next(iter(criteria))
+                path.append(only)
+                parent = only
+                continue
+
+            result = await self.choose(state, criteria)
+            calls += 1
+            tokens_in += result.input_tokens
+            tokens_out += result.output_tokens
+            path.append(result.intent_id)
+            edges.append(result.probabilities.get(result.intent_id, result.confidence))
+            confidences.append(result.confidence)
+            probabilities = result.probabilities
+            parent = result.intent_id
+
+        latency_ms = (time.perf_counter_ns() - started) // 1_000_000
+        score = 0.0
+        if edges:
+            product = 1.0
+            for edge in edges:
+                product *= edge
+            score = product ** (1 / len(edges))
+        elif confidences:
+            score = confidences[-1]
+
+        return RoutingChoice(
+            intent_id=path[-1] if path else "",
+            confidence=score,
+            probabilities=probabilities,
+            latency_ms=latency_ms,
+            input_tokens=tokens_in,
+            output_tokens=tokens_out,
+            path=tuple(path),
+            calls=calls,
         )
 
     async def aclose(self) -> None:

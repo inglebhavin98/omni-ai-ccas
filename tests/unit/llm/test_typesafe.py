@@ -158,3 +158,112 @@ async def test_the_api_key_is_sent_as_a_bearer_token() -> None:
 
     await client(handler).choose(redacted("hello"), CRITERIA)
     assert seen == ["Bearer k"]
+
+
+# ------------------------------------------------- hierarchical (the documented shape)
+
+
+def _taxonomy():  # type: ignore[no-untyped-def]
+    import json
+    from pathlib import Path
+
+    from ccas.schemas.taxonomy import IntentTaxonomy
+
+    repo = Path(__file__).resolve().parents[3]
+    return IntentTaxonomy.model_validate(
+        json.loads((repo / "domains" / "retail" / "taxonomy.json").read_text())
+    )
+
+
+def test_level_criteria_returns_the_roots_then_the_children() -> None:
+    from ccas.llm.typesafe import level_criteria
+
+    taxonomy = _taxonomy()
+    roots = level_criteria(taxonomy, None)
+    assert "account" in roots and "order" in roots
+    assert all("." not in key for key in roots), "roots are L1, not leaves"
+
+    children = level_criteria(taxonomy, "order")
+    assert set(children) == {n.intent_id for n in taxonomy.nodes if n.parent_id == "order"}
+    assert all(key.startswith("order.") for key in children)
+
+
+async def test_hierarchical_routing_descends_one_level_at_a_time() -> None:
+    """The documented approach for a taxonomy: 27 options flat becomes 11 then 4.
+
+    Jagged edge 5 is the reason -- "accuracy falls as the state grows with content
+    unrelated to the decision", and 27 sibling criteria are mostly irrelevant to any
+    given message.
+    """
+    asked: list[dict[str, str]] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+
+        body = _json.loads(request.content)
+        criteria = body["questions"][ROUTER_QUESTION]["criteria"]
+        asked.append(criteria)
+        pick = "order" if "account" in criteria else "order.track_order"
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-latest",
+                "answers": {
+                    ROUTER_QUESTION: {
+                        "type": "choice",
+                        "choice": pick,
+                        "probabilities": {pick: 0.9},
+                        "confidence": 0.9,
+                    }
+                },
+                "usage": {"input_tokens": 100, "output_tokens": 10},
+            },
+        )
+
+    from ccas.llm.typesafe import TypeSafeClient as C
+
+    transport = httpx.MockTransport(handler)  # type: ignore[arg-type]
+    c = C(api_key="k", client=httpx.AsyncClient(transport=transport))  # type: ignore[arg-type]
+    result = await c.choose_hierarchical(redacted("where is my order"), _taxonomy())
+
+    assert result.intent_id == "order.track_order"
+    assert result.path == ("order", "order.track_order")
+    assert len(asked) == 2, "one call per level"
+    assert len(asked[0]) == 11, "first call offers the categories"
+    assert all("." not in k for k in asked[0])
+
+
+async def test_a_category_with_one_child_costs_no_second_call() -> None:
+    """`subscription` has exactly one leaf. Asking a Choice with one option spends a call
+    to learn nothing."""
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-latest",
+                "answers": {
+                    ROUTER_QUESTION: {
+                        "type": "choice",
+                        "choice": "subscription",
+                        "probabilities": {"subscription": 0.95},
+                        "confidence": 0.95,
+                    }
+                },
+                "usage": {},
+            },
+        )
+
+    from ccas.llm.typesafe import TypeSafeClient as C
+
+    calls = {"n": 0}
+
+    async def counting(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return await handler(request)
+
+    transport = httpx.MockTransport(counting)  # type: ignore[arg-type]
+    c = C(api_key="k", client=httpx.AsyncClient(transport=transport))  # type: ignore[arg-type]
+    result = await c.choose_hierarchical(redacted("cancel my newsletter"), _taxonomy())
+    assert result.intent_id == "subscription.newsletter_subscription"
+    assert calls["n"] == 1

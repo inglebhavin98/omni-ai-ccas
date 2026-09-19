@@ -52,6 +52,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--domains", type=Path, default=Path("domains"))
     p.add_argument("--limit", type=int, default=30, help="rows to route. One call each")
     p.add_argument("--seed", type=int, default=17, help="must match eval_router.py to compare")
+    p.add_argument(
+        "--mode",
+        choices=["flat", "hierarchical"],
+        default="hierarchical",
+        help="flat = one Choice over every leaf; hierarchical = one Choice per level",
+    )
     p.add_argument("--out", type=Path, default=None)
     return p
 
@@ -92,17 +98,24 @@ async def run(args: argparse.Namespace) -> int:
 
     print(f"  domain       {args.domain}  ({len(criteria)} intents in the choice set)")
     print(f"  corpus       {corpus.name}, held-out split only")
+    print(f"  mode         {args.mode}")
     print(f"  routing      {len(cases)} rows through typesafe:{settings.typesafe_model}\n")
 
     outcomes: list[tuple[RouterCase, RouterOutcome]] = []
     errors: dict[str, int] = {}
     tokens = 0
+    calls = 0
     wall = time.perf_counter()
     try:
         for case in cases:
             content = redaction.redact(case.utterance, redaction.new_allocator(vault))
             try:
-                choice = await client.choose(content, criteria)
+                choice = (
+                    await client.choose(content, criteria)
+                    if args.mode == "flat"
+                    else await client.choose_hierarchical(content, loaded.taxonomy)
+                )
+                calls += choice.calls
                 outcome = RouterOutcome(
                     predicted=choice.intent_id,
                     confidence=choice.confidence,
@@ -126,7 +139,8 @@ async def run(args: argparse.Namespace) -> int:
 
     report = score_router(outcomes)
     print(f"  {report.summary()}")
-    print(f"  wall {elapsed:.1f}s, {tokens} tokens\n")
+    print(f"  wall {elapsed:.1f}s, {tokens} tokens, {calls} API calls")
+    print(f"  cost  ${tokens / 1_000_000 * 0.042:.4f} at $0.042/M input tokens\n")
     print(
         "  baseline (openrouter_alt, 2026-09-19): 23/26 exact (88.5%), category 100.0%, p95 3496 ms"
     )
@@ -161,6 +175,8 @@ async def run(args: argparse.Namespace) -> int:
                     "p95_latency_ms": report.p95_latency_ms,
                     "wall_seconds": round(elapsed, 1),
                     "tokens": tokens,
+                    "api_calls": calls,
+                    "mode": args.mode,
                     "failures_by_cause": errors,
                     "confusions": [list(c) for c in report.confusions],
                 },
