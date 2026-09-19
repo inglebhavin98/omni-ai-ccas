@@ -2,6 +2,7 @@
 
 | Document | Answers |
 |---|---|
+| [`how-it-works.md`](how-it-works.md) | **Start here.** What is this, what does it do, how does it work — in plain language, no expertise assumed |
 | [`skills.md`](skills.md) | How do I work in this repo? What are the rules, tools and agent capabilities? |
 | [`tech-spec.md`](tech-spec.md) | What shape is the data? What are the API contracts and latency budgets? |
 | [`design-doc.md`](design-doc.md) | How does it fit together? What flows through it, and why is it built this way? |
@@ -14,7 +15,10 @@ operationalise it; where they disagree, `CLAUDE.md` wins.
 
 ## Reading order
 
-New to the project: `design-doc.md` → `skills.md` → `tech-spec.md`.
+New to the project, or not an engineer: `how-it-works.md`, and stop there if that is
+all you need.
+
+New engineer: `how-it-works.md` → `design-doc.md` → `skills.md` → `tech-spec.md`.
 
 Picking up a module: `skills.md` §2 (conventions) → `tech-spec.md` for the contracts you
 will touch → the relevant ADR.
