@@ -74,7 +74,7 @@ contain neither. **6/8 stages live**; the two pending ones name their phase.
 
 | what | why | blocked on |
 |---|---|---|
-| **Open the PR** | branch is pushed, nothing reviewed | nothing |
+| **Review and merge PR #1** | open, nothing reviewed | a reviewer |
 | **M6b** — judge, Ragas/DeepEval | the other half of Module 6, entirely unbuilt. Contracts already exist in `schemas/eval.py` (`JudgeDimension`, `JudgeScore`, `JudgeVerdict`) | nothing |
 | **Agent-desktop surface** | `GET /v1/handoffs/{id}` and `WS /v1/ws/copilot/{session_id}`, tech-spec §3.2a, still "planned" | nothing |
 | **Widen the router eval** (6.8) | 26 measured rows is ~1 per intent; the headline is sound, the per-intent detail is not | credits, or two days of free quota |
