@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     openrouter_title: str = "omni-ai-ccas"
     """OpenRouter asks callers to identify themselves; these become HTTP-Referer and
     X-Title, which is how a free-tier account is attributed rather than rate-limited."""
+    # --- typesafe `jev` (spike only; not on any call path -- see llm/typesafe.py) ---
+    typesafe_base_url: str = "https://api.typesafe.ai/v1/systemone"
+    typesafe_api_key: SecretStr | None = Field(default=None, alias="TYPESAFE_API_KEY")
+    typesafe_model: str = "jev-latest"
+
     vllm_base_url: str = "http://localhost:8000/v1"
     vllm_api_key: SecretStr = SecretStr("not-needed")
     anthropic_api_key: SecretStr | None = Field(default=None, alias="ANTHROPIC_API_KEY")

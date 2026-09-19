@@ -27,9 +27,14 @@ a live run, a cassette, or a stub.
 
 from __future__ import annotations
 
+import itertools
+import json
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
 
 from ccas.llm.base import ProviderRateLimitedError, ProviderTimeoutError
 from ccas.mining.adopt import DERIVATION_SPLIT, split_of
@@ -39,6 +44,7 @@ __all__ = [
     "RouterCase",
     "RouterOutcome",
     "RouterReport",
+    "holdout_cases",
     "naturalise",
     "outcome_for_exception",
     "score_router",
@@ -240,3 +246,49 @@ def _p95(values: list[int]) -> int:
     ordered = sorted(values)
     rank = max(1, -(-95 * len(ordered) // 100))
     return ordered[rank - 1]
+
+
+def holdout_cases(path: Path, limit: int, seed: int) -> list[RouterCase]:
+    """Sample held-out rows, stratified by intent so rare ones are not lost to chance.
+
+    Lives here rather than in a script because it is what makes two runs *comparable*.
+    A second implementation elsewhere would silently grade a different set of rows and the
+    numbers would look like a model difference.
+    """
+    by_intent: dict[str, list[RouterCase]] = {}
+    with path.open(encoding="utf-8") as handle:
+        for index, line in enumerate(handle):
+            row_id = f"{path.stem}:{index}"
+            if split_of(row_id) == DERIVATION_SPLIT:
+                continue
+            row = json.loads(line)
+            category, intent = row.get("category"), row.get("intent")
+            text = (row.get("instruction") or "").strip()
+            if not (category and intent and text):
+                continue
+            expected = f"{_slug(str(category))}.{_slug(str(intent))}"
+            by_intent.setdefault(expected, []).append(
+                RouterCase(row_id=row_id, utterance=naturalise(text), expected_intent=expected)
+            )
+
+    rng = np.random.default_rng(seed)
+    picked: list[RouterCase] = []
+    intents = sorted(by_intent)
+    # Round-robin across intents: 40 rows drawn at random would miss a third of a
+    # 27-intent taxonomy entirely, and a per-intent breakdown needs every intent present.
+    for depth in itertools.count():
+        if len(picked) >= limit:
+            break
+        added = False
+        for intent in intents:
+            rows = by_intent[intent]
+            if depth < len(rows) and len(picked) < limit:
+                picked.append(rows[int(rng.integers(0, len(rows)))])
+                added = True
+        if not added:
+            break
+    return picked[:limit]
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_") or "unknown"

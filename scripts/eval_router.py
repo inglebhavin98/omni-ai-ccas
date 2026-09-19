@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import itertools
 import json
 import sys
 import time
@@ -26,14 +25,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-import numpy as np
 
 from ccas.config.domain_loader import load_domain
 from ccas.config.settings import Settings
 from ccas.evals.router_accuracy import (
-    RouterCase,
     RouterOutcome,
-    naturalise,
+    holdout_cases,
     outcome_for_exception,
     score_router,
 )
@@ -42,7 +39,6 @@ from ccas.ingestion.datasets import DatasetRole, require_role
 from ccas.llm.base import LLMProviderError
 from ccas.llm.bindings import load_bindings
 from ccas.llm.factory import build_provider
-from ccas.mining.adopt import DERIVATION_SPLIT, split_of
 from ccas.observability.logging import configure_logging, get_logger
 from ccas.redaction.pipeline import RedactionMode, build_pipeline
 from ccas.redaction.placeholder import PlaceholderVault
@@ -65,49 +61,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _holdout_cases(path: Path, limit: int, seed: int) -> list[RouterCase]:
-    """Sample held-out rows, stratified by intent so rare ones are not lost to chance."""
-    by_intent: dict[str, list[RouterCase]] = {}
-    with path.open(encoding="utf-8") as handle:
-        for index, line in enumerate(handle):
-            row_id = f"{path.stem}:{index}"
-            if split_of(row_id) == DERIVATION_SPLIT:
-                continue
-            row = json.loads(line)
-            category, intent = row.get("category"), row.get("intent")
-            text = (row.get("instruction") or "").strip()
-            if not (category and intent and text):
-                continue
-            expected = f"{_slug(str(category))}.{_slug(str(intent))}"
-            by_intent.setdefault(expected, []).append(
-                RouterCase(row_id=row_id, utterance=naturalise(text), expected_intent=expected)
-            )
-
-    rng = np.random.default_rng(seed)
-    picked: list[RouterCase] = []
-    intents = sorted(by_intent)
-    # Round-robin across intents: 40 rows drawn at random would miss a third of a
-    # 27-intent taxonomy entirely, and a per-intent breakdown needs every intent present.
-    for depth in itertools.count():
-        if len(picked) >= limit:
-            break
-        added = False
-        for intent in intents:
-            rows = by_intent[intent]
-            if depth < len(rows) and len(picked) < limit:
-                picked.append(rows[int(rng.integers(0, len(rows)))])
-                added = True
-        if not added:
-            break
-    return picked[:limit]
-
-
-def _slug(value: str) -> str:
-    import re
-
-    return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_") or "unknown"
-
-
 async def run(args: argparse.Namespace) -> int:
     settings = Settings()
     loaded = load_domain(args.domains, args.domain)
@@ -122,7 +75,7 @@ async def run(args: argparse.Namespace) -> int:
         print(f"error: no .jsonl under {args.raw / source.value}", file=sys.stderr)
         return 2
 
-    cases = _holdout_cases(corpus, args.limit, args.seed)
+    cases = holdout_cases(corpus, args.limit, args.seed)
     if not cases:
         print("error: no held-out rows found", file=sys.stderr)
         return 2
