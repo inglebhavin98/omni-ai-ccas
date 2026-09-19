@@ -73,7 +73,8 @@ tests/test_module_2_redaction.py       regex · presidio · leak detector       
 tests/test_module_3_mining.py          embed → cluster → taxonomy               [green]
 tests/test_module_4_orchestration.py   StateGraph · tools · policies            [green]
 tests/test_module_5_voice.py           LiveKit · VAD · STT/TTS · barge-in       [green]
-tests/test_module_6_copilot_evals.py   handoff · summary · judge · parity       (phase 6)
+tests/test_module_6_copilot.py         handoff · CRM adapter · egress gate      [green]
+  (M6b judge · Ragas/DeepEval still to come; contracts exist in schemas/eval.py)
 ```
 
 ### Testing rules

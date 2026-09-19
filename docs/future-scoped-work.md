@@ -78,7 +78,7 @@ Status: `deferred` (decided, not scheduled) · `blocked` (waiting on something n
 
 | # | Item | Status | Why deferred | Trigger |
 |---|---|---|---|---|
-| 7.1 | **Real CRM adapters** (Salesforce, ServiceNow, Epic, …) | deferred | `copilot/crm/mock.py` proves the contract. Each real adapter is customer-specific | First pilot |
+| 7.1 | **Real CRM adapters** (Salesforce, ServiceNow, Epic, …) | deferred | `copilot/crm/mock.py` proves the contract — it exists as of 2026-09-19, having been claimed since Phase 4. Adapters are `Protocol`-shaped so a pack brings its own without this package importing a vendor SDK; each real one is customer-specific | First pilot |
 | 7.2 | **WFM recalibration model** | deferred | Autonomous agents cut volume while raising the complexity of what escalates, so AHT-based forecasting breaks. Real, but downstream of containment data | Post migration phase 1 |
 | 7.3 | **Agent coaching insights** from 100% judged calls | deferred | Value is real; depends on 6.x maturity | After 6.4 |
 | 7.4 | **Canary traffic splitting infrastructure** | deferred | Depends on 1.3 | Migration phase 1 |
