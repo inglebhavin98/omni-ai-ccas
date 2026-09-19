@@ -128,3 +128,35 @@ def test_the_console_is_served_and_self_contained(client: TestClient, markup: st
     assert "omni-ai-ccas workbench" in response.text
     external = re.findall(r"""<(?:script|link)[^>]+(?:src|href)=["'](https?://[^"']+)""", markup)
     assert not external, f"console loads external resources: {external}"
+
+
+def test_readiness_names_the_domain_the_console_should_open_on(client: TestClient) -> None:
+    """The console cannot pick sensibly without being told which pack is the default.
+
+    Left to itself it renders the packs in whatever order the API returns them and the
+    browser selects the first, which is alphabetical -- and alphabetically first is a pack
+    with no taxonomy.
+    """
+    ready = client.get("/ready").json()
+    assert "default_domain" in ready
+    assert ready["domains"][ready["default_domain"]]["loads"]
+
+
+def test_the_console_does_not_open_on_a_pack_that_cannot_route(markup: str) -> None:
+    """Observed in a real browser: the dropdown opened on `Healthcare Payer (no taxonomy)`
+    because it is first alphabetically, so the first message a reviewer types escalates and
+    the product reads as broken. The `(no taxonomy)` suffix does not help -- nobody reads a
+    dropdown label before typing.
+
+    The console must therefore *choose*: honour the configured default when it can route,
+    and otherwise fall back to a pack that can.
+    """
+    assert "default_domain" in markup, "the console must read the configured default"
+    assert "selected" in markup, "choosing a domain means marking an option selected"
+    assert "has_taxonomy" in markup, "the fallback has to know which packs can route"
+
+
+def test_the_console_asks_for_a_favicon_the_server_answers(client: TestClient) -> None:
+    """A browser requests /favicon.ico unprompted. Returning 404 puts an error in the
+    console on every single load, which is the noise that teaches people to ignore it."""
+    assert client.get("/favicon.ico").status_code == 200

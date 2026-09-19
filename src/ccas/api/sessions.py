@@ -115,6 +115,7 @@ class SessionManager:
             "provider_configured": provider is not None,
             "provider_error": self._provider_error,
             "default_provider": self.bindings.default_provider.value,
+            "default_domain": self.settings.default_domain,
             "domains": domains,
             "sessions": len(self._sessions),
         }

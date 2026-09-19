@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from ccas.api.schemas import (
@@ -202,7 +202,26 @@ def build_app(manager: SessionManager | None = None) -> FastAPI:
         async def index() -> FileResponse:
             return FileResponse(STATIC_DIR / "index.html")
 
+        @app.get("/favicon.ico")
+        async def favicon() -> Response:
+            """Answer the request every browser makes unprompted.
+
+            Served inline rather than committed as a binary: a 404 here puts an error in
+            the browser console on every load, and a console that always has an error in
+            it is a console nobody reads.
+            """
+            return Response(content=_FAVICON, media_type="image/svg+xml")
+
     return app
+
+
+#: A loopback dev console; the mark only has to be distinguishable in a tab strip.
+_FAVICON = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    b'<rect width="32" height="32" rx="7" fill="#111"/>'
+    b'<circle cx="16" cy="16" r="7" fill="none" stroke="#4ade80" stroke-width="3"/>'
+    b"</svg>"
+)
 
 
 def _require(sessions: SessionManager, session_id: str) -> Any:
