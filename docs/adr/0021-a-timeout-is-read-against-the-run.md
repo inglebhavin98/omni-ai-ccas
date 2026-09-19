@@ -47,8 +47,9 @@ see" rather than failing, and Rule 6's one defence against a silent single-model
 dependency becomes the thing that conceals it.
 
 A second measurement bounds the problem. With quota available, `make evals` ran green for
-the first time on 2026-09-15 — 33/33, no skips, agreement at or above the 0.75 threshold
-over at least five measured cases. Timeouts are therefore an **occasional capacity event**,
+the first time on 2026-09-15 — 33/33, no skips — and on re-running it 2026-09-19 to capture
+the numbers the first run discarded, both variants agreed on **8 of 8 cases with nothing
+unmeasured**. Timeouts are therefore an **occasional capacity event**,
 not a standing property of the free tier, and a blanket reversal of 0014 would be a large
 change bought by a narrow problem — made immediately after the gate started passing, which
 is when loosening it deserves the most suspicion.
@@ -110,15 +111,23 @@ recorded in `docs/future-scoped-work.md` rather than guessed at here.
 
 - The 52.5% figure from 2026-09-14 is **superseded and must not be quoted**. Under this
   rule the same outcomes read as 21 measured, 19 unmeasured, 100% exact — on a denominator
-  small enough that it is a smoke test, not a result. The run needs redoing on a provider
-  that can answer inside 30 s before any accuracy claim is made.
+  small enough that it is a smoke test, not a result.
+- **Confirmed 2026-09-19.** Re-run on the `openrouter_alt` variant, which answers at 2.3 s
+  p95 against the primary's 12.5 s: **23/26 exact (88.5%), category 100.0%, zero timeouts**,
+  and the 4 unmeasured rows were 429s that this rule and ADR-0014 both drop. The diagnosis
+  holds — the original run measured the free tier's queue, not the router. Worth noting
+  that the provider "that can answer inside 30 s" was already configured; nobody had
+  compared the two variants' latency until the parity gate printed both.
 - `make eval-router` now prints failures by cause, and `failures_by_cause` is in the JSON
   report. The absence of that breakdown is why the original diagnosis had to be
   reconstructed from wall-clock arithmetic.
 - A timeout's verdict is no longer inferable from the exception alone, so the progress line
   marks a row `-` only for a 429; a timed-out row shows `x` until the run is scored.
-- **`make evals` leaves no durable record.** The gate emits `parity.router` via `LOG.info`,
-  but nothing calls `configure_logging` in a pytest run, so the event never reaches
-  `logs/execution.log`. The first green parity run was therefore observed only as an exit
-  code. Listed in `docs/future-scoped-work.md`.
-- Rule 6 is verified for `router` as of 2026-09-15.
+- **`make evals` left no durable record**, and the first green parity run was therefore
+  observed only as an exit code. Fixed 2026-09-19: a package-scoped fixture in
+  `tests/evals/conftest.py` points the eval package at `logs/execution.log`. The numbers
+  from that first run are not recoverable.
+- Rule 6 is verified for `router`, with numbers as of 2026-09-19: 8 cases, **agreement
+  1.0**, 0 divergent, 0 unmeasured. The two variants differ fivefold in latency
+  (12,525 ms vs 2,347 ms p95) while agreeing on every case — which is what made the
+  capacity diagnosis above checkable rather than merely plausible.
