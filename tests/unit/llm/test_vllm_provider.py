@@ -7,7 +7,11 @@ import json
 import httpx
 import pytest
 
-from ccas.llm.base import LLMProviderError, ProviderUnavailableError
+from ccas.llm.base import (
+    LLMProviderError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from ccas.llm.vllm_provider import VLLMProvider, build_payload
 from ccas.schemas.llm import LLMRequest, Message, ModelBinding, ProviderName
 from tests.factories import redacted
@@ -147,3 +151,14 @@ async def test_health_probe_reports_reachability() -> None:
 
     assert await provider(up).healthy()
     assert not await provider(down).healthy()
+
+
+async def test_a_read_timeout_never_escapes_as_an_httpx_error() -> None:
+    """The same contract the OpenRouter binding holds: a raw httpx error propagating out
+    of a graph node takes the whole call down, so every binding must convert it."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("slow")
+
+    with pytest.raises(ProviderTimeoutError):
+        await provider(handler).complete(request())

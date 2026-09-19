@@ -30,6 +30,7 @@ Every package carries its own README. Start at [`src/ccas/README.md`](src/ccas/R
 
 | Document | Answers |
 |---|---|
+| [`docs/how-it-works.md`](docs/how-it-works.md) | **Start here.** The whole project in plain language — no expertise assumed |
 | [`docs/design-doc.md`](docs/design-doc.md) | Architecture, data flows, subsystem integration |
 | [`docs/tech-spec.md`](docs/tech-spec.md) | Data models, API contracts, latency budgets |
 | [`docs/skills.md`](docs/skills.md) | Project rules, tooling, agent capabilities |
@@ -72,7 +73,7 @@ and [ADR-0004](docs/adr/0004-dataset-role-separation.md).
 | 3 | M3 intent mining & taxonomy | **shipped** (needs a real corpus to produce a real taxonomy) |
 | 4 | M4 LangGraph agentic mesh | **shipped** |
 | 5 | M5 LiveKit voice engine | **shipped, then frozen** ([ADR-0018](docs/adr/0018-freeze-voice-pivot-to-chat.md)) — complete but paused; vendor adapters never ran against a live service. Kept green under `make voice` |
-| 6 | M6 copilot & evaluation suite | in progress — `evals/parity.py` shipped, `copilot/` is a stub |
+| 6 | M6 copilot & evaluation suite | **M6a shipped** — handoff, egress gate, CRM adapter, gate test, demo stage. **M6b partial** — `evals/parity.py` and `evals/router_accuracy.py` have produced real numbers ([ADR-0021](docs/adr/0021-a-timeout-is-read-against-the-run.md)); the async judge and Ragas/DeepEval are not built |
 
 Redaction runs in two modes (ADR-0007): **regex only on the call path** (111 µs p99,
 inside the 3 ms slice) and **regex + local NER in batch** (7.0 ms) for anything stored,

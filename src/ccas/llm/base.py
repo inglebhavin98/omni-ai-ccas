@@ -16,6 +16,7 @@ __all__ = [
     "LLMProvider",
     "LLMProviderError",
     "ProviderRateLimitedError",
+    "ProviderTimeoutError",
     "ProviderUnavailableError",
 ]
 
@@ -38,6 +39,16 @@ class ProviderRateLimitedError(LLMProviderError):
     Distinct from a failure because nothing was measured. The parity harness drops such a
     case rather than scoring it as disagreement (``ccas.evals.parity``), and a caller on
     the call path should escalate rather than retry into the same wall.
+    """
+
+
+class ProviderTimeoutError(LLMProviderError):
+    """Every attempt timed out -- the provider never produced a response.
+
+    A sibling of ``ProviderRateLimitedError`` rather than a plain failure, and for the same
+    reason: nothing was measured. A free tier under load refuses by queueing past the
+    deadline instead of by returning 429, so an eval that only excludes 429 keeps counting
+    unserved rows as wrong answers (ADR-0014).
     """
 
 

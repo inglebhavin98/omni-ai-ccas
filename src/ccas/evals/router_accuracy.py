@@ -15,6 +15,12 @@ on a derivation row rather than trusting whoever assembled the batch to have fil
 parity gate. A 429 is not a misclassification, and scoring it as one reports a broken
 router when the provider was out of quota.
 
+**A timeout is read against the rest of the run** (ADR-0021, amending 0014). A 429 says
+outright that nothing was served; a timeout does not distinguish a queue from a model that
+cannot answer at all. So it is unmeasured only when the same model answered some other row
+in the same run, and divergent otherwise -- which keeps a wholly dead binding failing
+rather than vanishing from its own denominator.
+
 Pure: calling the router is the caller's job, which is what lets the same report come from
 a live run, a cassette, or a stub.
 """
@@ -25,6 +31,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from ccas.llm.base import ProviderRateLimitedError, ProviderTimeoutError
 from ccas.mining.adopt import DERIVATION_SPLIT, split_of
 
 __all__ = [
@@ -33,6 +40,7 @@ __all__ = [
     "RouterOutcome",
     "RouterReport",
     "naturalise",
+    "outcome_for_exception",
     "score_router",
 ]
 
@@ -73,7 +81,12 @@ class RouterOutcome:
     confidence: float | None = None
     error: str | None = None
     unavailable: bool = False
-    """The request was never served -- quota, outage. Excluded from the denominator."""
+    """The request was never served, and said so -- a 429. Excluded from the denominator."""
+
+    timed_out: bool = False
+    """Every attempt ran out the clock. Whether that means "never served" or "cannot
+    serve" is not knowable from the row alone; ``score_router`` decides it against the
+    rest of the run."""
 
     latency_ms: int = 0
 
@@ -91,6 +104,26 @@ class IntentScore:
     @property
     def accuracy(self) -> float:
         return self.correct / self.total if self.total else 0.0
+
+
+def outcome_for_exception(exc: BaseException) -> RouterOutcome:
+    """Classify a routing attempt that raised: never served, or served and unusable.
+
+    Rule 6 splits these and only the second belongs in a denominator. The distinction is
+    *why* no intent came back, which the exception type carries and a null intent_id does
+    not: a queue that outlived the deadline measured nothing, while a response that arrived
+    and would not parse is a real defect in the prompt or the schema.
+
+    ADR-0014 drew the line at 429 because that is how a quota announces itself. A free tier
+    at capacity mostly does not announce it at all -- it just stops answering -- so keying
+    on 429 alone let 19 of 40 rows in the first live run be recorded as wrong answers from
+    a provider that had never answered.
+    """
+    if isinstance(exc, ProviderRateLimitedError):
+        return RouterOutcome(unavailable=True, error=str(exc)[:120])
+    if isinstance(exc, ProviderTimeoutError):
+        return RouterOutcome(timed_out=True, error=str(exc)[:120])
+    return RouterOutcome(error=f"{type(exc).__name__}: {exc}"[:120])
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +176,12 @@ def score_router(outcomes: Outcomes) -> RouterReport:
             f"taxonomy's labels; only held out rows may grade it (first: {offenders[0]!r})"
         )
 
+    # A timeout means "never served" only if this model served something else here. The
+    # same binding answering other rows is the evidence that the clock, not the model, ran
+    # out; with no answer anywhere the run cannot tell capacity from incapacity, and
+    # ADR-0014's worry applies -- a wholly dead binding must fail rather than disappear.
+    answered_anywhere = any(o.answered for _, o in outcomes)
+
     measured = unmeasured = exact = category_correct = 0
     correct_by_intent: dict[str, int] = {}
     total_by_intent: dict[str, int] = {}
@@ -150,11 +189,14 @@ def score_router(outcomes: Outcomes) -> RouterReport:
     latencies: list[int] = []
 
     for case, outcome in outcomes:
-        if outcome.unavailable:
+        if outcome.unavailable or (outcome.timed_out and answered_anywhere):
             unmeasured += 1
             continue
         measured += 1
-        latencies.append(outcome.latency_ms)
+        if outcome.answered:
+            # A row that raised has no latency, and its 0 ms would drag the percentile
+            # toward a number no call actually achieved.
+            latencies.append(outcome.latency_ms)
         total_by_intent[case.expected_intent] = total_by_intent.get(case.expected_intent, 0) + 1
 
         predicted = outcome.predicted or ""

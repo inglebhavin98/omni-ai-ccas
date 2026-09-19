@@ -1,60 +1,98 @@
-# Resume here — 2026-09-13
+# Resume here — 2026-09-19
 
 A point-in-time note, not a maintained document. `docs/future-scoped-work.md` is the
-living list; this says what to do **first** and what is blocked on what. Delete or replace
-it once the next session has picked the work up.
+living list. Delete or replace it once the next session has picked the work up.
 
 ## State
 
-38 commits, pushed to `github.com/inglebhavin98/omni-ai-ccas`, working tree clean.
-`make check` exits 0: 929 passed, 3 skipped on the default selection, 95 more under
-`make voice`. ruff and `mypy --strict` clean.
+Branch `phase6/evals-timeout-verdict`, pushed, tree clean.
 
-The chat channel runs end to end. A clone needs one key and `make workbench`.
+    PR #1: https://github.com/inglebhavin98/omni-ai-ccas/pull/1
+
+Green: `ruff format --check`, `ruff check`, `uv run mypy` (135 files), `pytest`
+**963 passed / 2 skipped**, `make voice` **95 passed**.
 
 ## Do this first
 
-**1. Revoke the exposed key.** It is still live. An invalid key returns 401; this one
-returns 429, which means it authenticates. A new key was created but the old one was never
-deleted, and `.env` still uses it.
+**Revoke the exposed key.** Outstanding since 2026-09-13 across three sessions. An invalid
+key returns 401; this one returns 429, so it authenticates.
 
     openrouter.ai/keys  ->  delete sk-or-v1-0b707...  ->  put the new key in .env
 
-The daily quota is per *account*, so a new key does not reset it.
+The daily quota is per *account*, so a new key does not reset it. No session has been able
+to verify which key `.env` holds — reading it is blocked by the harness.
 
-**2. Run the router evaluation.** The free-tier quota resets at **00:00 UTC**. This is the
-number that decides whether the core works — until it runs, "the chat channel works" means
-"it routes without crashing".
+## What this branch did
 
-    make eval-router          # 40 held-out rows, one LLM call each
+**The Rule 6 parity gate is green, with numbers.** 8 cases, **agreement 1.0**, 0 divergent,
+0 unmeasured. ADR-0014 said Rule 6 was unverified for `router` and had to run green before
+Module 6 could be called done. Discharged.
 
-Reports exact accuracy, category accuracy, per-intent scores, the most frequent confusions
-and p95 latency. A throttled row is reported unmeasured rather than wrong, so a partial run
-is still honest.
+The two variants differ **fivefold in latency** while agreeing on every case:
+`openrouter` (nex-agi) 12,525 ms p95 against `openrouter_alt` (ling-3.0-flash-fin)
+2,347 ms. Nobody had compared them until the gate printed both, and that comparison is what
+unblocked the router evaluation below.
 
-**3. Run the Rule 6 parity gate**, which has never once run green.
+**ADR-0021** — a timeout is unmeasured only if the same model answered another row in the
+same run. ADR-0014's table was internally ambiguous (*cold model* listed as unavailable,
+*timeout* as a divergence, and a cold model is observed as a timeout). Parity is
+deliberately left on the old rule; the two harnesses disagree knowingly (6.6).
 
-    make evals                # 16 calls: 8 cases x 2 router variants
+**The router works: 23/26 exact (88.5%), category 100.0%, p95 3496 ms**, on 30 held-out
+rows through `openrouter_alt` (2026-09-19). Zero timeouts; the 4 unmeasured rows were 429s
+once the daily cap bit, correctly dropped from the denominator.
 
-Budget both against the 50/day free-tier cap: the two together are ~56 calls, so they will
-not both fit in one day without credits.
+**Every prediction landed in the right L1 category.** All three exact misses are
+near-neighbours inside it — `switch_account`->`edit_account`,
+`contact_human_agent`->`contact_customer_service`,
+`create_account`->`registration_problems` — which are ambiguous label pairs in Bitext
+rather than routing failures.
+
+**The old 52.5% figure is retired — do not quote it.** It was capacity, not comprehension:
+all 19 of its failures were `expected -> <none>`, nothing was misrouted, and the failures
+were timeouts (per-row ceiling 92.25 s, run ≥2100 s, so instant parse failures would force
+the 21 successes to average 100 s each — above the ceiling, impossible).
+
+What is still thin is **width**: 26 measured rows is roughly one per intent, so per-intent
+numbers mean little. 6.8 stays open for that reason alone.
+
+**Three Rule 2 holes closed on the handoff** (schema 1.0 → 1.1, migration note in
+tech-spec §1.7). `cti_attributes`, `NextBestAction.action`/`.rationale` and
+`VerifiedIdentity.attributes` were plain `str` on a model whose docstring promises every
+text-bearing field carries a report. The third was a **live leak**: verified attributes are
+caller-derived, and `escalate.py` copied them into a vendor-bound payload unredacted.
+
+**M6a now passes Rule 11** — gate test, demo stage and structured logs all present.
+`copilot/crm/` has the adapter boundary and `MockCrmAdapter`; `future-scoped-work.md` 7.1
+had claimed since Phase 4 that this file proved the contract, and it did not exist.
+
+Verified end to end: `cli.demo pipeline` with a PAN and an email redacts to
+`[PAYMENT_CARD_1]` / `[EMAIL_1]`, and the 11 attached-data pairs reaching the mock CRM
+contain neither. **6/8 stages live**; the two pending ones name their phase.
+
+## What is left
+
+| what | why | blocked on |
+|---|---|---|
+| **Review and merge PR #1** | open, nothing reviewed | a reviewer |
+| **M6b** — judge, Ragas/DeepEval | the other half of Module 6, entirely unbuilt. Contracts already exist in `schemas/eval.py` (`JudgeDimension`, `JudgeScore`, `JudgeVerdict`) | nothing |
+| **Agent-desktop surface** | `GET /v1/handoffs/{id}` and `WS /v1/ws/copilot/{session_id}`, tech-spec §3.2a, still "planned" | nothing |
+| **Widen the router eval** (6.8) | 26 measured rows is ~1 per intent; the headline is sound, the per-intent detail is not | credits, or two days of free quota |
+| **Align the two harnesses** (6.6) | they disagree about a timeout | the first parity run that actually times out |
+| **A real browser test** (9.21) | a reviewer clicks the UI before reading an ADR | an ADR — Playwright is outside the locked stack |
+| **`docker-compose.yml` never started** (9.20) | valid YAML, written on a machine without Docker | a machine with Docker |
+
+`src/cli/stages.py` has one `_pending` stage (`_stage_intent`) and it is an honest
+conditional — it fires only when the pack has no mined taxonomy and prints the command to
+mine it.
 
 ## Known-unknown worth stating plainly
 
 Coverage on the mined insurance corpus tops out at **19.7%** and **the cause is not
 established**. Three explanations were tested and refuted — call direction, campaign
 variety, lexical repetition — and one lexical result was retracted after the measure turned
-out to carry a vocabulary-size artefact. `docs/future-scoped-work.md` 9.17 has the full
-record. Do not re-propose the outbound-sales explanation; it is refuted with numbers.
-
-## Then, in rough order of value
-
-| what | why | blocked on |
-|---|---|---|
-| **M6 copilot** | only module with no gate test (Rule 11): CRM handoff, disposition, summary | nothing |
-| **A real browser test** (9.21) | a reviewer clicks the UI before reading an ADR; route and DOM contracts are covered, rendering is not | an ADR — Playwright is outside the locked stack (Rule 5) |
-| **Two `_pending` demo stages** | `src/cli/stages.py`; Rule 11 requires a real call or an honest pending | the modules they demo |
-| **`docker-compose.yml` never started** (9.20) | valid YAML, written on a machine without Docker | a machine with Docker |
+out to carry a vocabulary-size artefact. `docs/future-scoped-work.md` 9.17 has the record.
+Do not re-propose the outbound-sales explanation; it is refuted with numbers.
 
 ## What not to touch
 
@@ -62,6 +100,5 @@ record. Do not re-propose the outbound-sales explanation; it is refuted with num
 at `tests/test_module_5_voice_frozen.py` runs by default and has already caught the core
 drifting away from it once.
 
-The folder structure was reviewed and deliberately left alone. `domains/` stays at the repo
-root because packs are data, not code — moving them under `src/` would break the
-domain-literal gate that keeps the core honest.
+`domains/` stays at the repo root because packs are data, not code — moving them under
+`src/` would break the domain-literal gate that keeps the core honest.

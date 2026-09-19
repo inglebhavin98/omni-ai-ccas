@@ -62,6 +62,7 @@ Two layers, deliberately:
 | `tests/latency/` | Budget assertions. |
 | `tests/security/` | Leakage and domain-agnosticism invariants. |
 | `tests/evals/` | Judge calibration and variant parity. `test_parity_report.py` exercises the harness offline — feed it known-divergent outcomes and check it says so. `test_provider_parity.py` is the Rule 6 gate: a structural half that runs everywhere, and an `integration` half that calls both variants for real. |
+| unmeasured vs divergent | A case nobody served leaves the denominator; a case that failed stays in it (ADR-0014). A **429 is self-describing** and is unmeasured on its own. A **timeout is not**: it is unmeasured only if the same model answered another row in the same run, and divergent otherwise, so a wholly dead binding still fails (ADR-0021). The row records what happened (`outcome_for_exception`); the scorer decides what it means, because only it sees the whole run. Currently applied in `router_accuracy` and deliberately not in `parity` — see ADR-0021 scope. |
 
 Gate files, in order:
 
@@ -72,7 +73,8 @@ tests/test_module_2_redaction.py       regex · presidio · leak detector       
 tests/test_module_3_mining.py          embed → cluster → taxonomy               [green]
 tests/test_module_4_orchestration.py   StateGraph · tools · policies            [green]
 tests/test_module_5_voice.py           LiveKit · VAD · STT/TTS · barge-in       [green]
-tests/test_module_6_copilot_evals.py   handoff · summary · judge · parity       (phase 6)
+tests/test_module_6_copilot.py         handoff · CRM adapter · egress gate      [green]
+  (M6b judge · Ragas/DeepEval still to come; contracts exist in schemas/eval.py)
 ```
 
 ### Testing rules

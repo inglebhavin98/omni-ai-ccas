@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from ccas.schemas import (
     HandoffContext,
     HandoffReason,
+    NextBestAction,
     RedactionStatus,
     SlotValue,
     Speaker,
@@ -120,3 +121,61 @@ def test_audio_travels_by_reference_not_inline(trace: TraceContext) -> None:
     ctx = handoff(trace, audio_recording_ref="s3://recordings/sess-1.wav")
     assert ctx.audio_recording_ref is not None
     assert not hasattr(ctx, "audio_bytes")
+
+
+def test_handoff_refuses_unredacted_cti_attributes(trace: TraceContext) -> None:
+    """Attached data is what actually reaches Genesys or Cisco, and it is retained there.
+
+    The field's docstring has always said values must already be redacted; until now
+    nothing enforced it, so the one field aimed straight at a third-party vendor was the
+    one field a leak could ride out on.
+    """
+    with pytest.raises(ValidationError, match="cti attribute"):
+        handoff(
+            trace,
+            cti_attributes={"account": redacted("12 Mill Rd", RedactionStatus.DIRTY)},
+        )
+
+
+def test_handoff_refuses_an_unredacted_next_best_action(trace: TraceContext) -> None:
+    """Next-best actions are model-generated and land in front of a human agent."""
+    with pytest.raises(ValidationError, match="next_best_actions"):
+        handoff(
+            trace,
+            next_best_actions=(
+                NextBestAction(
+                    action=redacted("Call back on 555-0100", RedactionStatus.DIRTY),
+                    rationale=redacted("caller asked", RedactionStatus.CLEAN),
+                    confidence=0.8,
+                ),
+            ),
+        )
+
+
+def test_handoff_refuses_an_unredacted_identity_attribute(trace: TraceContext) -> None:
+    """Verified attributes are caller-derived by definition -- they are what was verified."""
+    identity = VerifiedIdentity(
+        caller_ref="a" * 32,
+        level=VerificationLevel.STRONG,
+        method="otp",
+        attributes={"dob": redacted("1980-01-01", RedactionStatus.DIRTY)},
+        verified_at=utcnow(),
+    )
+    with pytest.raises(ValidationError, match="identity attribute"):
+        handoff(trace, identity=identity)
+
+
+def test_handoff_accepts_redacted_attached_data(trace: TraceContext) -> None:
+    ctx = handoff(
+        trace,
+        cti_attributes={"reason": redacted("low_confidence")},
+        next_best_actions=(
+            NextBestAction(
+                action=redacted("Verify [ACCOUNT_REF_1]"),
+                rationale=redacted("not yet verified"),
+                confidence=0.6,
+            ),
+        ),
+    )
+    assert ctx.cti_attributes["reason"].require_egress() == "low_confidence"
+    assert ctx.next_best_actions[0].action.require_egress() == "Verify [ACCOUNT_REF_1]"

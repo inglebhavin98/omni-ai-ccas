@@ -19,7 +19,13 @@ import pytest
 from ccas.evals.router_accuracy import (
     RouterCase,
     RouterOutcome,
+    outcome_for_exception,
     score_router,
+)
+from ccas.llm.base import (
+    LLMProviderError,
+    ProviderRateLimitedError,
+    ProviderTimeoutError,
 )
 from ccas.mining.adopt import DERIVATION_SPLIT
 
@@ -73,6 +79,102 @@ def test_a_rate_limited_row_is_unmeasured_not_wrong() -> None:
     assert report.measured == 3
     assert report.unmeasured == 1
     assert report.exact_accuracy == 1.0
+
+
+def test_a_timed_out_row_is_unmeasured_not_wrong() -> None:
+    """A provider that never answered served nothing, whether it said 429 or said nothing.
+
+    ADR-0014 drew this line for the quota case only. The first live run (52.5% exact) spent
+    19 of 40 rows exhausting a 3x30s ladder and every one was scored as a misclassification
+    attributed to `<none>`, which reads as a broken router rather than an absent provider.
+    """
+    cases = _holdout(4)
+    timed_out = outcome_for_exception(ProviderTimeoutError("no response after 3 attempt(s)"))
+    outcomes = [
+        (cases[0], timed_out),
+        *[(c, RouterOutcome(predicted=c.expected_intent)) for c in cases[1:]],
+    ]
+    report = score_router(outcomes)
+    assert report.measured == 3
+    assert report.unmeasured == 1
+    assert report.exact_accuracy == 1.0
+    assert not report.confusions, "an unserved row is not a confusion"
+
+
+def test_a_timeout_is_divergent_when_the_model_never_answered() -> None:
+    """The loophole ADR-0014 guarded against: a model that never answers must not vanish.
+
+    Dropping every timed-out row unconditionally would let a wholly dead binding report
+    "nothing to see" instead of failing, which is exactly how a silent single-model
+    dependency would hide from Rule 6.
+    """
+    cases = _holdout(4)
+    timed_out = outcome_for_exception(ProviderTimeoutError("no response"))
+    report = score_router([(c, timed_out) for c in cases])
+    assert report.unmeasured == 0, "nothing excuses a model that answered nothing"
+    assert report.measured == 4
+    assert report.exact_accuracy == 0.0
+
+
+def test_a_timeout_is_unserved_once_the_model_has_answered_elsewhere() -> None:
+    """The same binding answering other rows in the same run is the evidence that the
+    timeout was capacity, not incapacity."""
+    cases = _holdout(4)
+    outcomes = [
+        (cases[0], outcome_for_exception(ProviderTimeoutError("no response"))),
+        *[(c, RouterOutcome(predicted=c.expected_intent)) for c in cases[1:]],
+    ]
+    report = score_router(outcomes)
+    assert report.measured == 3
+    assert report.unmeasured == 1
+
+
+def test_a_rate_limit_is_unmeasured_even_when_nothing_answered() -> None:
+    """A 429 is self-describing -- the provider said it never served the request -- so it
+    needs no corroboration from the rest of the run. Unchanged from ADR-0014."""
+    cases = _holdout(3)
+    report = score_router(
+        [(c, outcome_for_exception(ProviderRateLimitedError("429"))) for c in cases]
+    )
+    assert report.measured == 0
+    assert report.unmeasured == 3
+    assert report.exact_accuracy == 0.0
+
+
+def test_a_rate_limit_is_still_unmeasured() -> None:
+    assert outcome_for_exception(ProviderRateLimitedError("429")).unavailable
+
+
+def test_a_served_but_unusable_answer_is_divergent_not_unmeasured() -> None:
+    """Rule 6: a case that *failed* is divergent. The response arrived and was unusable,
+    which is a real defect in the prompt or the schema and must stay in the denominator."""
+    cases = _holdout(2)
+    broken = outcome_for_exception(ValueError("intent_id missing from response"))
+    report = score_router([(cases[0], broken), (cases[1], RouterOutcome(predicted="x.y"))])
+    assert not broken.unavailable
+    assert report.measured == 2
+    assert report.unmeasured == 0
+    assert report.exact_accuracy == 0.0
+
+
+def test_a_generic_provider_error_stays_divergent() -> None:
+    """Only the never-served cases leave the denominator; everything else is a failure."""
+    assert not outcome_for_exception(LLMProviderError("malformed payload")).unavailable
+
+
+def test_a_row_that_never_answered_contributes_no_latency() -> None:
+    """A failed row has no latency, and feeding its 0 ms into the distribution understates
+    p95. The first live run put 19 zeros into a 40-sample p95."""
+    cases = _holdout(4)
+    outcomes = [
+        (cases[0], RouterOutcome(predicted=cases[0].expected_intent, latency_ms=900)),
+        (cases[1], RouterOutcome(predicted=cases[1].expected_intent, latency_ms=800)),
+        (cases[2], outcome_for_exception(ValueError("unusable"))),
+        (cases[3], outcome_for_exception(ValueError("unusable"))),
+    ]
+    report = score_router(outcomes)
+    assert report.measured == 4, "a served-and-unusable row stays in the denominator"
+    assert report.p95_latency_ms == 900, "the two failures must not enter the latency sample"
 
 
 def test_scoring_nothing_is_not_perfect_accuracy() -> None:

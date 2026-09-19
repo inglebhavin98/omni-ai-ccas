@@ -7,6 +7,7 @@ did not perform would be worse than no demo at all.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -15,17 +16,21 @@ from pathlib import Path
 from ccas.config.budget import load_budget
 from ccas.config.domain_loader import LoadedDomain
 from ccas.config.settings import Settings
+from ccas.copilot.crm.mock import MockCrmAdapter
 from ccas.graph.assembly import NODE_NAMES
 from ccas.ingestion.base import RawRecord, RawTurn
 from ccas.ingestion.datasets import DatasetRole, roles_for
+from ccas.llm.prompt import authored
 from ccas.policies.base import PolicyContext
 from ccas.policies.engine import PolicyEngine
 from ccas.redaction.pipeline import RedactionMode
 from ccas.redaction.pipeline import build_pipeline as build_redaction_pipeline
 from ccas.schemas.call_log import CallLog, DatasetSource, Utterance
-from ccas.schemas.common import Channel, Speaker, TraceContext
+from ccas.schemas.common import Channel, Speaker, TraceContext, Urgency
+from ccas.schemas.escalation import HandoffReason
+from ccas.schemas.handoff import HandoffContext
 from ccas.schemas.pii import RedactedText
-from ccas.schemas.session import LatencyLedger
+from ccas.schemas.session import LatencyLedger, Turn
 from ccas.tools.registry import build_registry
 from ccas.voice.stt.deepgram import DeepgramStt
 from ccas.voice.tts.cartesia import CartesiaTts
@@ -315,6 +320,76 @@ def _stage_voice(ctx: StageContext) -> StageResult:
     return StageResult("Voice engine", "voice.session", status, lines, phase=None if live else 5)
 
 
+def _stage_copilot(ctx: StageContext) -> StageResult:
+    """Build the CTI payload and push it, so the last hop out is visible.
+
+    This is the only stage whose failure mode is a privacy breach rather than a wrong
+    answer, so what it demonstrates is the refusal: ``HandoffContext`` will not construct
+    around unredacted text, and ``attached_data`` will not unwrap it.
+
+    The demo does not run the graph, so there is no routed session and no policy verdict
+    behind this handoff -- it is built from this turn alone, and the output says so. What
+    is real is the contract, the redaction gate and the adapter; none of it is mocked out.
+    """
+    if ctx.redacted is None:
+        return StageResult(
+            "Agent copilot",
+            "copilot.crm",
+            StageStatus.BLOCKED,
+            ["redaction did not run, so there is nothing that may leave the process"],
+            phase=6,
+        )
+
+    pack = ctx.domain.pack
+    queue = pack.default_queue
+    entities = ctx.redacted.report.entity_counts
+    summary = authored(
+        f"Caller reached a handoff after 1 turn on the {ctx.domain.domain} pack. "
+        f"Intent: not identified (the demo does not route). "
+        f"Redaction replaced {sum(entities.values())} entity value(s)."
+    )
+
+    handoff = HandoffContext(
+        handoff_id=f"{ctx.trace.correlation_id[:12]}-handoff",
+        session_id=ctx.trace.correlation_id,
+        trace=ctx.trace,
+        domain=ctx.domain.domain,
+        reason=HandoffReason.UNSUPPORTED_INTENT,
+        urgency=Urgency.NORMAL,
+        target_queue=queue.name,
+        required_skills=queue.skills,
+        intent_confidence=0.0,
+        summary=summary,
+        transcript=(Turn(index=0, speaker=Speaker.CALLER, content=ctx.redacted),),
+        cti_attributes={"triggered_by": authored("demo"), "turns": authored("1")},
+    )
+
+    adapter = MockCrmAdapter()
+    record = asyncio.run(adapter.push(handoff))
+
+    lines = [
+        f"handoff        {handoff.handoff_id}  (HandoffContext v{handoff.schema_version})",
+        f"reason         {handoff.reason.value}, urgency {handoff.urgency.value}",
+        f"queue          {handoff.target_queue}  skills={list(handoff.required_skills) or '-'}",
+        f"transcript     {len(handoff.transcript)} turn(s), all egress-permitted",
+        f"crm            {record.system} -> {record.record_id}",
+        f"attached data  {len(record.attributes)} flat key/value pairs",
+        "",
+    ]
+    for key in sorted(record.attributes):
+        lines.append(f"    {key:<22} {record.attributes[key]}")
+    lines += [
+        "",
+        "  the summary and transcript are deliberately NOT attached data -- a vendor",
+        "  retains that for the life of the interaction (copilot/crm/base.py)",
+        "",
+        "  no routed session behind this one: the demo builds the payload from this",
+        "  turn alone. The contract, the redaction gate and the adapter are all real;",
+        "  try `cli.demo gate` to watch the same gate refuse.",
+    ]
+    return StageResult("Agent copilot", "copilot.crm", StageStatus.LIVE, lines)
+
+
 def _stage_latency(ctx: StageContext) -> StageResult:
     budget = load_budget(ctx.config_dir / "latency_budget.yaml")
     stages = budget.stages.as_dict()
@@ -334,6 +409,7 @@ def build_pipeline() -> tuple[Stage, ...]:
         Stage("Intent detection", "orchestration.router", _stage_intent),
         Stage("Agentic mesh", "graph.assembly", _stage_tool),
         Stage("Voice engine", "voice.session", _stage_voice),
+        Stage("Agent copilot", "copilot.crm", _stage_copilot),
         Stage("Latency budget", "config.budget", _stage_latency),
     )
 
