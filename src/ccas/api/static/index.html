@@ -175,8 +175,15 @@ async function boot() {
       chip.title = ready.provider_error || "";
     }
     const domains = await api("/v1/domains");
+    // Open on a pack that can actually route. Left alone the browser selects the first
+    // option, which is alphabetical -- and that is a pack with no taxonomy, so the first
+    // message typed escalates and the console reads as broken.
+    const routable = Object.keys(domains).filter(n => domains[n].has_taxonomy);
+    const preferred = routable.includes(ready.default_domain)
+      ? ready.default_domain
+      : (routable[0] || Object.keys(domains)[0]);
     $("domain").innerHTML = Object.entries(domains).map(([name, d]) =>
-      `<option value="${name}">${esc(d.display_name)}${d.has_taxonomy ? "" : " (no taxonomy)"}</option>`
+      `<option value="${name}"${name === preferred ? " selected" : ""}>${esc(d.display_name)}${d.has_taxonomy ? "" : " (no taxonomy)"}</option>`
     ).join("");
     await loadTools();
   } catch (e) {
