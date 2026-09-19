@@ -1,150 +1,84 @@
-# Resume here — 2026-09-15 (evening)
+# Resume here — 2026-09-19
 
 A point-in-time note, not a maintained document. `docs/future-scoped-work.md` is the
-living list; this says what to do **first** and what is blocked on what. Delete or replace
-it once the next session has picked the work up.
+living list. Delete or replace it once the next session has picked the work up.
 
 ## State
 
-39 commits on `main`. **The working tree is dirty and everything in it is finished** — the
-decision that was blocking it has been made (ADR-0021). It is ready to commit; it was left
-uncommitted only because nobody asked for a commit.
+Branch `phase6/evals-timeout-verdict`, **6 commits ahead of `main`, pushed**, tree clean.
+No PR opened yet.
 
-Green as of this note: `ruff format --check`, `ruff check`, `uv run mypy` (133 files),
-`pytest` **939 passed / 2 skipped**, `make voice` **95 passed**.
+    https://github.com/inglebhavin98/omni-ai-ccas/pull/new/phase6/evals-timeout-verdict
+
+Green: `ruff format --check`, `ruff check`, `uv run mypy` (135 files), `pytest`
+**961 passed / 2 skipped**, `make voice` **95 passed**.
 
 ## Do this first
 
-**1. Revoke the exposed key.** Outstanding since 2026-09-13 and still not done. An invalid
+**Revoke the exposed key.** Outstanding since 2026-09-13 across three sessions. An invalid
 key returns 401; this one returns 429, so it authenticates.
 
     openrouter.ai/keys  ->  delete sk-or-v1-0b707...  ->  put the new key in .env
 
-The daily quota is per *account*, so a new key does not reset it. (Neither session could
-verify which key `.env` holds — reading it is blocked by the harness.)
+The daily quota is per *account*, so a new key does not reset it. No session has been able
+to verify which key `.env` holds — reading it is blocked by the harness.
 
-**2. Commit the tree.** `make check` is green. Branch per convention
-(`phase<N>/<module>-<slug>`), Conventional Commits. Rule 10 docs are already written and
-are part of the same change.
+## What this branch did
 
-**3. Quota.** ~16 of 50 free calls spent on 2026-09-15 (the parity gate). The
-2026-09-14 router run spent ~40. Resets 00:00 UTC.
+**The Rule 6 parity gate ran green for the first time.** `make evals`, 33/33, zero skips.
+ADR-0014 said Rule 6 was unverified for `router` and had to run green before Module 6 could
+be called done. Discharged. The exact agreement number was **not captured** — see 6.7.
 
-## What happened this session
+**ADR-0021** — a timeout is unmeasured only if the same model answered another row in the
+same run. ADR-0014's table was internally ambiguous (*cold model* listed as unavailable,
+*timeout* as a divergence, and a cold model is observed as a timeout). Parity is
+deliberately left on the old rule; the two harnesses disagree knowingly (6.6).
 
-### The Rule 6 parity gate ran green for the first time
+**The 52.5% router figure is retired — do not quote it.** All 19 failures were
+`expected -> <none>`; nothing was misrouted. They were timeouts, provable from wall clock:
+per-row ceiling 92.25 s, run ≥2100 s, so instant parse failures would force the 21
+successes to average 100 s each, above the ceiling. Under ADR-0021 it reads 21 measured /
+19 unmeasured / 100% exact — a smoke test on 21 rows. The nine intents scoring zero were
+the rows that timed out; **nothing is known about them either way**. Redo is 6.8.
 
-`make evals` — exit 0, **33/33, zero skips**. ADR-0014 said *"Rule 6 is currently
-unverified for `router`… It must run green before Module 6 is called done."* Discharged.
-Passing means ≥75% agreement over ≥5 measured cases across both router variants.
+**Three Rule 2 holes closed on the handoff** (schema 1.0 → 1.1, migration note in
+tech-spec §1.7). `cti_attributes`, `NextBestAction.action`/`.rationale` and
+`VerifiedIdentity.attributes` were plain `str` on a model whose docstring promises every
+text-bearing field carries a report. The third was a **live leak**: verified attributes are
+caller-derived, and `escalate.py` copied them into a vendor-bound payload unredacted.
 
-**The exact agreement number was not captured**, and that is a real gap, now
-`future-scoped-work.md` 6.7. The gate emits `parity.router` through `LOG.info`, but nothing
-calls `configure_logging` in a pytest run, so it went to captured stdout and vanished on
-pass. `logs/execution.log` has `eval.router` twice and no `parity.router` ever. The first
-green run of the project's most important gate was observed only as an exit code.
-Re-running to capture it costs 16 calls.
+**M6a now passes Rule 11** — gate test, demo stage and structured logs all present.
+`copilot/crm/` has the adapter boundary and `MockCrmAdapter`; `future-scoped-work.md` 7.1
+had claimed since Phase 4 that this file proved the contract, and it did not exist.
 
-### The router evaluation was diagnosed, and its headline retired
+Verified end to end: `cli.demo pipeline` with a PAN and an email redacts to
+`[PAYMENT_CARD_1]` / `[EMAIL_1]`, and the 11 attached-data pairs reaching the mock CRM
+contain neither. **6/8 stages live**; the two pending ones name their phase.
 
-`make eval-router` on 2026-09-14 returned `21/40 exact (52.5%), 0 unmeasured, p95 83277 ms`.
-That number is **superseded — do not quote it.**
-
-- All 19 failures were `expected -> <none>`. **Nothing was misrouted.**
-- The failures were **timeouts**, proved from wall clock: per-row ceiling is 92.25 s
-  (3 x 30 s + 2.25 s backoff), the run took ≥2100 s, so instant parse failures would force
-  the 21 successes to average 100 s each — above the ceiling, impossible.
-- Under ADR-0021 the same outcomes read **21 measured, 19 unmeasured, 100% exact**. That
-  is a smoke test on a denominator of 21, not a result.
-- The nine intents scoring zero were the rows that timed out. **Nothing is known about
-  them either way** — do not read that column as bad routing.
-
-Redoing it properly is `future-scoped-work.md` 6.8, blocked on a provider that answers
-inside 30 s.
-
-### ADR-0021 — a timeout is read against the run
-
-ADR-0014's verdict table was **internally ambiguous**: it listed *cold model* as unavailable
-and *timeout* as a divergence, but a cold model is observed as a timeout. The live run
-landed on the seam.
-
-Decided (option 3 of three, chosen over a blanket reversal):
-
-- **A 429 is self-describing** — unmeasured on its own. Unchanged from ADR-0014.
-- **A timeout is ambiguous** — unmeasured only if the same model answered another row in
-  the same run; divergent otherwise, so a wholly dead binding still fails.
-
-The classification is split on purpose: `outcome_for_exception` records *what happened* to
-a row, `score_router` decides *what it means*, because only the scorer sees the whole run.
-
-What changed the recommendation mid-session: the parity gate going green showed timeouts
-are an occasional capacity event, not systematic. A blanket reversal would have been a
-large change bought by one run — and would have loosened a gate immediately after it
-started passing. The reasoning is in the ADR; the counter-arguments are in its Alternatives
-section.
-
-**Deliberate inconsistency:** `parity` still scores a timeout as a divergence per ADR-0014.
-`ProviderTimeoutError` subclasses `LLMProviderError`, not `ProviderRateLimitedError`, so the
-parity path is untouched. The two harnesses now disagree about a timeout. That is accepted
-knowingly and recorded as `future-scoped-work.md` 6.6, to be resolved by the first parity
-run that actually times out rather than by guessing now.
-
-## What is in the dirty tree
-
-```
- docs/adr/0021-a-timeout-is-read-against-the-run.md   (new)
- docs/adr/README.md            0014 -> "amended by 0021"; 0021 indexed
- docs/future-scoped-work.md    6.6, 6.7, 6.8, 6.9
- docs/skills.md                unmeasured-vs-divergent convention
- docs/resume-here.md           this file
- scripts/eval_router.py        failures_by_cause; progress marks
- src/ccas/evals/router_accuracy.py   outcome_for_exception; run-aware scoring; latency fix
- src/ccas/llm/base.py          ProviderTimeoutError
- src/ccas/llm/openrouter_provider.py  raises it when the ladder is exhausted
- src/ccas/llm/vllm_provider.py        converts httpx.TimeoutException
- tests/evals/test_router_accuracy.py         +8
- tests/unit/llm/test_openrouter_provider.py  +1
- tests/unit/llm/test_vllm_provider.py        +1
-```
-
-Beyond the ADR, three fixes worth knowing about:
-
-- **The latency sample was polluted.** `score_router` appended `latency_ms` for every
-  measured row, and a failed row carries 0 ms — 19 zeros in a 40-value p95. Rank 38 of 40
-  still landed in real data so 83,277 ms was genuine, but the statistic was structurally
-  wrong and a smaller failure count would have shifted the rank into the zeros.
-- **`failures_by_cause`** in the report and on the progress line. Its absence is why the
-  timeout diagnosis had to be reconstructed from wall-clock arithmetic instead of read off
-  the report.
-- **`vllm_provider.py` let `httpx.ReadTimeout` escape raw.** The exact failure
-  `test_a_read_timeout_never_escapes_as_an_httpx_error` prevents on the OpenRouter side;
-  the OpenRouter docstring says why — *"a raw httpx error propagating out of a graph node
-  takes the whole call down"*. Now converted, with the mirrored test.
-
-## Then, in rough order of value
+## What is left
 
 | what | why | blocked on |
 |---|---|---|
-| **M6 copilot** | the only module with no gate test (Rule 11). `src/ccas/copilot/` is two empty `__init__.py` files, 6 lines total. `HandoffContext` is already frozen and strict — validators reject an unredacted summary, transcript turn, slot or tool result, plus an L1->L2->L3 path check. Missing: summariser -> disposition -> handoff builder -> mock CRM adapter, a gate test, a demo stage and structured logs | nothing |
-| **Capture the parity numbers** (6.7) | the Rule 6 gate proves something and records nothing | 16 calls, or a conftest fixture |
-| **Redo the router eval** (6.8) | the only accuracy number the project has rests on 21 rows | a provider that answers inside 30 s |
-| **A real browser test** (9.21) | a reviewer clicks the UI before reading an ADR | an ADR — Playwright is outside the locked stack (Rule 5) |
+| **Open the PR** | branch is pushed, nothing reviewed | nothing |
+| **M6b** — judge, Ragas/DeepEval | the other half of Module 6, entirely unbuilt. Contracts already exist in `schemas/eval.py` (`JudgeDimension`, `JudgeScore`, `JudgeVerdict`) | nothing |
+| **Agent-desktop surface** | `GET /v1/handoffs/{id}` and `WS /v1/ws/copilot/{session_id}`, tech-spec §3.2a, still "planned" | nothing |
+| **Capture the parity numbers** (6.7) | the Rule 6 gate proves something and records nothing — no `configure_logging` in a pytest run | 16 calls, or a conftest fixture |
+| **Redo the router eval** (6.8) | the only accuracy number rests on 21 rows | a provider answering inside 30 s |
+| **Align the two harnesses** (6.6) | they disagree about a timeout | the first parity run that actually times out |
+| **A real browser test** (9.21) | a reviewer clicks the UI before reading an ADR | an ADR — Playwright is outside the locked stack |
 | **`docker-compose.yml` never started** (9.20) | valid YAML, written on a machine without Docker | a machine with Docker |
 
-Note: `future-scoped-work.md` 7.1 claims `copilot/crm/mock.py` "proves the contract". That
-file does not exist. The claim is aspirational, not a record.
-
-`src/cli/stages.py` has one `_pending` stage (`_stage_intent`, line 182) and it is an
-honest conditional — it fires only when the pack has no mined taxonomy and prints the
-command to mine it. An earlier note said there were two; there is one.
+`src/cli/stages.py` has one `_pending` stage (`_stage_intent`) and it is an honest
+conditional — it fires only when the pack has no mined taxonomy and prints the command to
+mine it.
 
 ## Known-unknown worth stating plainly
 
 Coverage on the mined insurance corpus tops out at **19.7%** and **the cause is not
 established**. Three explanations were tested and refuted — call direction, campaign
 variety, lexical repetition — and one lexical result was retracted after the measure turned
-out to carry a vocabulary-size artefact. `docs/future-scoped-work.md` 9.17 has the full
-record. Do not re-propose the outbound-sales explanation; it is refuted with numbers.
+out to carry a vocabulary-size artefact. `docs/future-scoped-work.md` 9.17 has the record.
+Do not re-propose the outbound-sales explanation; it is refuted with numbers.
 
 ## What not to touch
 
@@ -152,6 +86,5 @@ record. Do not re-propose the outbound-sales explanation; it is refuted with num
 at `tests/test_module_5_voice_frozen.py` runs by default and has already caught the core
 drifting away from it once.
 
-The folder structure was reviewed and deliberately left alone. `domains/` stays at the repo
-root because packs are data, not code — moving them under `src/` would break the
-domain-literal gate that keeps the core honest.
+`domains/` stays at the repo root because packs are data, not code — moving them under
+`src/` would break the domain-literal gate that keeps the core honest.
