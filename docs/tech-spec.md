@@ -221,6 +221,7 @@ and is retained.
 
 ```
 HandoffContext
+  schema_version    "1.1"
   handoff_id · session_id · trace · domain
   reason            HandoffReason
   urgency · target_queue · required_skills
@@ -229,9 +230,9 @@ HandoffContext
   intent_confidence float
   collected_slots   dict[str, SlotValue]
   summary           RedactedText                 LLM-generated
-  next_best_actions tuple[NextBestAction, ...]
+  next_best_actions tuple[NextBestAction, ...]    action/rationale are RedactedText
   sentiment_trail · transcript · tool_trace
-  cti_attributes    dict[str, str]               UUI / attached data for Genesys, Cisco
+  cti_attributes    dict[str, RedactedText]      UUI / attached data for Genesys, Cisco
   audio_recording_ref  str | None                object-store URI; audio never inline
   created_at
 ```
@@ -241,7 +242,25 @@ tool_failure · max_turns · verification_failed · policy · unsupported_intent
 system_error`.
 
 **Construction invariant:** refuses if the summary, any transcript turn, any collected
-slot, or any tool result is not egress-permitted.
+slot, any tool result, any CTI attribute, any next-best action, or any verified-identity
+attribute is not egress-permitted.
+
+**Migration 1.0 → 1.1.** Three text-bearing fields were plain `str` and therefore outside
+the invariant the model exists to hold: `cti_attributes` values, `NextBestAction.action`
+and `.rationale`, and `VerifiedIdentity.attributes` values. All three are now
+`RedactedText` and are checked on construction.
+
+The gap was not academic. `cti_attributes` is what reaches Genesys or Cisco as attached
+data and is retained there, and `VerifiedIdentity.attributes` is caller-derived by
+definition — it is whatever the pack asked the caller to verify. The escalate node was
+copying those straight out of `CallerContext.verified_attributes` unredacted; it now
+passes them through the redactor. `cti_attributes` values written by the node are
+repo-authored (a policy name, an enum member, a turn count) and use `authored()`.
+
+*To migrate:* wrap each value. Caller-derived text goes through the redaction pipeline;
+text written in this repository goes through `ccas.llm.prompt.authored`. There is no
+in-place upgrade for a persisted 1.0 payload, because the original strings carry no report
+and one cannot be invented after the fact — re-derive from the session or discard.
 
 ### 1.8 `DomainPack` — the vertical surface
 

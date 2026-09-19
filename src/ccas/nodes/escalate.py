@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ccas.graph.context import GraphContext
+from ccas.llm.prompt import authored
 from ccas.nodes.base import NodeFn, speak
 from ccas.policies.base import PolicyAction
 from ccas.schemas.common import Urgency, utcnow
@@ -47,7 +48,13 @@ def build_handoff(
             caller_ref=state.caller.caller_ref,
             level=state.caller.verification,
             method="session",
-            attributes=dict(state.caller.verified_attributes),
+            # Verified attributes are caller-derived -- a name, a date of birth, whatever
+            # the pack asked for. They travel to a third-party desktop, so they go through
+            # the redactor like any other caller text rather than riding out as `str`.
+            attributes={
+                name: ctx.redaction.redact(value)
+                for name, value in state.caller.verified_attributes.items()
+            },
             verified_at=utcnow(),
         )
 
@@ -68,10 +75,13 @@ def build_handoff(
         sentiment_trail=tuple(state.sentiment_trail),
         transcript=tuple(state.turns),
         tool_trace=tuple(r for r in state.tool_records if r.result.safe_for_model),
+        # Authored, not caller-derived: a policy name, an enum member and a turn count.
+        # Nothing here originates with the caller, which is the only reason `authored` is
+        # the right wrapper rather than the redactor.
         cti_attributes={
-            "triggered_by": decision.triggered_by,
-            "reason": decision.reason.value,
-            "turns": str(state.turn_index),
+            "triggered_by": authored(decision.triggered_by),
+            "reason": authored(decision.reason.value),
+            "turns": authored(str(state.turn_index)),
         },
     )
 

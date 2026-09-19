@@ -35,7 +35,8 @@ class VerifiedIdentity(Frozen):
 
     level: VerificationLevel
     method: Slug
-    attributes: dict[Slug, str] = Field(default_factory=dict)
+    attributes: dict[Slug, RedactedText] = Field(default_factory=dict)
+    """Caller-derived by definition -- these are the values that were verified."""
     verified_at: datetime
 
     @model_validator(mode="after")
@@ -46,13 +47,16 @@ class VerifiedIdentity(Frozen):
 
 
 class NextBestAction(Frozen):
-    action: str = Field(min_length=1, max_length=256)
-    rationale: str = Field(min_length=1, max_length=512)
+    """Model-generated, and it lands in front of a human agent -- so it is text like any
+    other text, and carries its report like any other text."""
+
+    action: RedactedText
+    rationale: RedactedText
     confidence: float = Field(ge=0.0, le=1.0)
 
 
 class HandoffContext(Frozen):
-    schema_version: SchemaVersion = "1.0"
+    schema_version: SchemaVersion = "1.1"
     handoff_id: str = Field(min_length=1, max_length=128)
     session_id: str = Field(min_length=1, max_length=128)
     trace: TraceContext
@@ -76,8 +80,12 @@ class HandoffContext(Frozen):
     transcript: tuple[Turn, ...] = ()
     tool_trace: tuple[ToolRecord, ...] = ()
 
-    cti_attributes: dict[str, str] = Field(default_factory=dict)
-    """UUI / attached data for Genesys or Cisco. Values must already be redacted."""
+    cti_attributes: dict[str, RedactedText] = Field(default_factory=dict)
+    """UUI / attached data for Genesys or Cisco, retained on their side once delivered.
+
+    Typed rather than merely documented: this is the field aimed straight at a third-party
+    vendor, so ``str`` here was the one hole in a model whose whole purpose is to have none.
+    """
 
     audio_recording_ref: str | None = Field(default=None, max_length=512)
     """Object-store URI. Audio never travels inline (Rule 2)."""
@@ -105,6 +113,20 @@ class HandoffContext(Frozen):
                     f"handoff {self.handoff_id}: tool result "
                     f"{record.payload.tool_name!r} is unredacted"
                 )
+        for key, value in self.cti_attributes.items():
+            if not value.egress_permitted:
+                raise ValueError(f"handoff {self.handoff_id}: cti attribute {key!r} is unredacted")
+        for position, action in enumerate(self.next_best_actions):
+            if not (action.action.egress_permitted and action.rationale.egress_permitted):
+                raise ValueError(
+                    f"handoff {self.handoff_id}: next_best_actions[{position}] is unredacted"
+                )
+        if self.identity is not None:
+            for key, value in self.identity.attributes.items():
+                if not value.egress_permitted:
+                    raise ValueError(
+                        f"handoff {self.handoff_id}: identity attribute {key!r} is unredacted"
+                    )
         return self
 
     @model_validator(mode="after")
