@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ccas.config.domain_loader import load_domain
 from ccas.config.settings import Settings
+from ccas.evals.confidence import recommend, sweep, sweep_table
 from ccas.evals.router_accuracy import (
     RouterCase,
     RouterOutcome,
@@ -59,6 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="flat = one Choice over every leaf; hierarchical = one Choice per level",
     )
     p.add_argument("--out", type=Path, default=None)
+    p.add_argument(
+        "--auto-floor",
+        type=float,
+        default=0.95,
+        help="accuracy the auto-routed slice must clear for a cutoff to be recommended",
+    )
     return p
 
 
@@ -153,6 +160,27 @@ async def run(args: argparse.Namespace) -> int:
         for expected, predicted, n in report.confusions[:8]:
             print(f"    {n:>3}x  {expected}  ->  {predicted}")
 
+    # The threshold study. jev's confidence is the shape of its distribution, not the top
+    # probability, so the pack's 0.82 cannot simply be carried across -- it has to be
+    # re-derived against rows whose answer is known.
+    bands = sweep(outcomes)
+    if report.measured:
+        print("\n  confidence sweep (auto = routed without a human; def cat = right L1)")
+        for line in sweep_table(bands).splitlines():
+            print(f"    {line}")
+        picked = recommend(bands, min_auto_accuracy=args.auto_floor)
+        if picked is None:
+            print(
+                f"\n  no cutoff in this sweep clears {args.auto_floor:.0%} on "
+                f"at least 5 auto-routed rows"
+            )
+        else:
+            print(
+                f"\n  lowest cutoff clearing {args.auto_floor:.0%}: "
+                f"{picked.threshold:.2f} -- {picked.coverage:.1%} of rows automated, "
+                f"{picked.auto_accuracy:.1%} of those right"
+            )
+
     LOG.info(
         "spike.jev_router",
         correlation_id=f"spike-{args.domain}",
@@ -179,6 +207,31 @@ async def run(args: argparse.Namespace) -> int:
                     "mode": args.mode,
                     "failures_by_cause": errors,
                     "confusions": [list(c) for c in report.confusions],
+                    "bands": [
+                        {
+                            "threshold": b.threshold,
+                            "auto": b.auto,
+                            "auto_accuracy": round(b.auto_accuracy, 4),
+                            "coverage": round(b.coverage, 4),
+                            "deferred": b.deferred,
+                            "deferred_accuracy": round(b.deferred_accuracy, 4),
+                            "deferred_category_accuracy": round(b.deferred_category_accuracy, 4),
+                        }
+                        for b in bands
+                    ],
+                    # Per row, so a later sweep can be re-run without spending the quota
+                    # again -- and so anyone can check the bands rather than trust them.
+                    "rows": [
+                        {
+                            "row_id": c.row_id,
+                            "expected": c.expected_intent,
+                            "predicted": o.predicted,
+                            "confidence": o.confidence,
+                            "latency_ms": o.latency_ms,
+                            "error": o.error,
+                        }
+                        for c, o in outcomes
+                    ],
                 },
                 indent=2,
             )

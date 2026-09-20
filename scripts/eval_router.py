@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ccas.config.domain_loader import load_domain
 from ccas.config.settings import Settings
+from ccas.evals.confidence import recommend, sweep, sweep_table
 from ccas.evals.router_accuracy import (
     RouterOutcome,
     holdout_cases,
@@ -58,6 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--out", type=Path, default=None, help="write the report as JSON")
     parser.add_argument("--log-level", default="INFO")
+    parser.add_argument(
+        "--auto-floor",
+        type=float,
+        default=0.95,
+        help="accuracy the auto-routed slice must clear for a cutoff to be recommended",
+    )
     return parser
 
 
@@ -156,6 +163,21 @@ async def run(args: argparse.Namespace) -> int:
             for expected, predicted, count in report.confusions[:5]:
                 print(f"    {count:>3}x  {expected}  ->  {predicted}")
 
+        # The pack routes above 0.82 and escalates below it. Printed here so the cutoff
+        # is a measurement rather than an inheritance -- and in the same shape the jev
+        # spike prints, because the two are only comparable if they are read the same way.
+        bands = sweep(outcomes)
+        print("\n  confidence sweep (auto = routed without a human; def cat = right L1)")
+        for line in sweep_table(bands).splitlines():
+            print(f"    {line}")
+        picked = recommend(bands, min_auto_accuracy=args.auto_floor)
+        print(
+            f"\n  lowest cutoff clearing {args.auto_floor:.0%}: {picked.threshold:.2f} "
+            f"({picked.coverage:.1%} automated, {picked.auto_accuracy:.1%} right)"
+            if picked is not None
+            else f"\n  no cutoff clears {args.auto_floor:.0%} on 5+ auto-routed rows"
+        )
+
     LOG.info(
         "eval.router",
         correlation_id=f"eval-{args.domain}",
@@ -172,6 +194,17 @@ async def run(args: argparse.Namespace) -> int:
                 {
                     "domain": args.domain,
                     "model": binding.model,
+                    "rows": [
+                        {
+                            "row_id": c.row_id,
+                            "expected": c.expected_intent,
+                            "predicted": o.predicted,
+                            "confidence": o.confidence,
+                            "latency_ms": o.latency_ms,
+                            "error": o.error,
+                        }
+                        for c, o in outcomes
+                    ],
                     "measured": report.measured,
                     "unmeasured": report.unmeasured,
                     "exact_accuracy": report.exact_accuracy,

@@ -45,9 +45,11 @@ __all__ = [
     "RouterOutcome",
     "RouterReport",
     "holdout_cases",
+    "measured_rows",
     "naturalise",
     "outcome_for_exception",
     "score_router",
+    "unmeasured_row",
 ]
 
 
@@ -173,6 +175,31 @@ class RouterReport:
 Outcomes = Sequence[tuple[RouterCase, RouterOutcome]]
 
 
+def measured_rows(outcomes: Outcomes) -> list[tuple[RouterCase, RouterOutcome]]:
+    """The rows that are allowed into a denominator.
+
+    A timeout means "never served" only if this model served something else here. The same
+    binding answering other rows is the evidence that the clock, not the model, ran out;
+    with no answer anywhere the run cannot tell capacity from incapacity, and ADR-0014's
+    worry applies -- a wholly dead binding must fail rather than disappear.
+
+    Shared rather than reimplemented: any second copy of this rule would eventually
+    disagree with the first, and two harnesses quietly disagreeing about what counts is
+    the exact failure ADR-0021 was written after.
+    """
+    answered_anywhere = any(o.answered for _, o in outcomes)
+    return [
+        (case, outcome)
+        for case, outcome in outcomes
+        if not unmeasured_row(outcome, answered_anywhere=answered_anywhere)
+    ]
+
+
+def unmeasured_row(outcome: RouterOutcome, *, answered_anywhere: bool) -> bool:
+    """One row's half of the rule above, so a caller folding its own loop cannot drift."""
+    return outcome.unavailable or (outcome.timed_out and answered_anywhere)
+
+
 def score_router(outcomes: Outcomes) -> RouterReport:
     """Fold per-row outcomes into one report, refusing any row that is not held out."""
     offenders = [c.row_id for c, _ in outcomes if split_of(c.row_id) == DERIVATION_SPLIT]
@@ -182,10 +209,6 @@ def score_router(outcomes: Outcomes) -> RouterReport:
             f"taxonomy's labels; only held out rows may grade it (first: {offenders[0]!r})"
         )
 
-    # A timeout means "never served" only if this model served something else here. The
-    # same binding answering other rows is the evidence that the clock, not the model, ran
-    # out; with no answer anywhere the run cannot tell capacity from incapacity, and
-    # ADR-0014's worry applies -- a wholly dead binding must fail rather than disappear.
     answered_anywhere = any(o.answered for _, o in outcomes)
 
     measured = unmeasured = exact = category_correct = 0
@@ -195,7 +218,7 @@ def score_router(outcomes: Outcomes) -> RouterReport:
     latencies: list[int] = []
 
     for case, outcome in outcomes:
-        if outcome.unavailable or (outcome.timed_out and answered_anywhere):
+        if unmeasured_row(outcome, answered_anywhere=answered_anywhere):
             unmeasured += 1
             continue
         measured += 1

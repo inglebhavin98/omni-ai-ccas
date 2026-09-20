@@ -267,3 +267,73 @@ async def test_a_category_with_one_child_costs_no_second_call() -> None:
     result = await c.choose_hierarchical(redacted("cancel my newsletter"), _taxonomy())
     assert result.intent_id == "subscription.newsletter_subscription"
     assert calls["n"] == 1
+
+
+# ------------------------------------------------- batched questions (the judge shape)
+
+
+def test_a_named_state_gates_every_field_not_just_the_first() -> None:
+    """One unredacted field is a leak whatever the others hold, so the gate is per field
+    and the whole request dies on the first failure. A judge state carries four of these
+    -- the caller's turns, the reply, the tool results and the rules -- and any of them
+    could be the one that lost its clearance."""
+    from ccas.llm.typesafe import questions_request
+    from ccas.schemas import RedactionStatus
+
+    questions = {"faithfulness": {"type": "score", "criteria": ["bad", "good"]}}
+    payload = questions_request(
+        {"reply": redacted("we have it"), "tools": redacted("status=x")}, questions
+    )
+    assert payload["state"] == {"reply": "we have it", "tools": "status=x"}
+
+    with pytest.raises(PermissionError, match="egress blocked"):
+        questions_request(
+            {
+                "reply": redacted("we have it"),
+                "tools": redacted("call 555-0100", RedactionStatus.DIRTY),
+            },
+            questions,
+        )
+
+
+def test_a_request_with_no_questions_is_refused() -> None:
+    """An empty questions map is a request that spends the state and asks nothing."""
+    from ccas.llm.typesafe import questions_request
+
+    with pytest.raises(ValueError, match="no questions"):
+        questions_request({"reply": redacted("hi")}, {})
+
+
+async def test_several_questions_travel_in_one_call() -> None:
+    """The saving the vendor documents: the state is sent once, not once per question.
+    If this ever becomes several calls, the judge's cost story quietly changes."""
+    from ccas.llm.typesafe import questions_request  # noqa: F401  (shape under test)
+
+    calls: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        calls.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "answers": {
+                    "faithfulness": {"type": "score", "score": 3.0, "confidence": 0.9},
+                    "task_success": {"type": "score", "score": 2.0, "confidence": 0.7},
+                },
+                "usage": {"input_tokens": 400, "output_tokens": 0},
+            },
+        )
+
+    result = await client(handler).ask(
+        {"reply": redacted("on its way"), "tools": redacted("status=shipped")},
+        {
+            "faithfulness": {"type": "score", "criteria": ["bad", "good"]},
+            "task_success": {"type": "score", "criteria": ["bad", "good"]},
+        },
+    )
+    assert len(calls) == 1
+    assert set(calls[0]["questions"]) == {"faithfulness", "task_success"}  # type: ignore[arg-type]
+    assert set(result.body["answers"]) == {"faithfulness", "task_success"}
+    assert result.input_tokens == 400

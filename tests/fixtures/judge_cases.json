@@ -1,0 +1,185 @@
+{
+  "_readme": [
+    "Synthetic judge cases with planted defects, for scripts/spike_jev_judge.py.",
+    "There is no labelled judge corpus in data/raw/ -- bitext and natcs label intents,",
+    "not reply quality -- so the only honest way to grade a judge here is to build",
+    "exchanges whose right answer is known because it was constructed. The method is the",
+    "vendor's own: their citation-check recipe plants four failures in eight citations",
+    "and reports whether all four are caught.",
+    "Each case fails at most one dimension, so a judge that marks everything down cannot",
+    "score well by accident. Synthetic throughout (Rule 2): no real caller text.",
+    "'expect' is what a correct judge must return, by construction.",
+    "Three labels were corrected after the first run, and how they were wrong is worth",
+    "keeping: a fixture bug reads exactly like a model error.",
+    "  - planted_invented_eta and planted_invented_amount carried rules that forbade the",
+    "    very thing planted in them, so the reply broke two dimensions, not one. The",
+    "    judge scored policy_adherence low and was counted as raising a false alarm for",
+    "    being right. Their rules are now benign and unrelated to the plant.",
+    "  - grounded_address_change expected task_success from a reply that asks the caller",
+    "    to confirm an address before acting. That is what its rule demands, but it is",
+    "    not a completed request either, and no rubric level fits it. The case now runs",
+    "    the read-back to completion so the label is not a matter of opinion.",
+    "One lesson generalises past this vendor: faithfulness is undefined for a reply that",
+    "asserts nothing. A reply that only asks a question is vacuously grounded, and the",
+    "original grounded_address_change scored 0.35 for it. Any judge, LLM or not, will be",
+    "asked to grade replies like that, and the rubric has no level for them."
+  ],
+  "cases": [
+    {
+      "case_id": "grounded_status",
+      "planted": null,
+      "caller": "Hi, where is my order 4417-2290? It was meant to arrive yesterday.",
+      "reply": "Your order is in transit and the carrier now shows it arriving on 24 September. I'm sorry it missed yesterday's estimate.",
+      "tools": "get_order_status(order_ref=4417-2290) -> {status: in_transit, revised_eta: 2026-09-24, original_eta: 2026-09-19}",
+      "rules": "Be concise. Do not promise a delivery date the carrier has not given.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_escalation",
+      "planted": null,
+      "caller": "I was charged twice for the same order and I want it sorted today.",
+      "reply": "I can see two authorisations against that order, but I can't tell from here which one settled, so I'm passing you to the payments team with what I've found. They'll have your order reference and both authorisation dates.",
+      "tools": "get_payment_events(order_ref=4417-2290) -> {authorisations: 2, settled: unknown}",
+      "rules": "Never state which payment settled unless the payment record says so. Escalate to the payments queue when it does not.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_return_scanned",
+      "planted": null,
+      "caller": "I sent the jacket back last week. Has the refund gone through?",
+      "reply": "Your return was scanned into the warehouse on 16 September and the refund is now approved. It will show on your statement within five working days.",
+      "tools": "get_return_status(order_ref=8890-1123) -> {scanned_at: 2026-09-16, refund_state: approved, settlement_days: 5}",
+      "rules": "A refund may only be described as approved once the return has been scanned. Before that, say it is under review.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_address_change",
+      "planted": null,
+      "caller": "Can you send it to 14 Bridge Row instead? [after the read-back] Yes, 14 Bridge Row, that's right.",
+      "reply": "I read that back as 14 Bridge Row and you confirmed it, so I've updated the delivery address on the order.",
+      "tools": "get_order_status(order_ref=2210-4471) -> {status: preparing, address_locked: false}; update_delivery_address(order_ref=2210-4471, address=14 Bridge Row) -> {updated: true}",
+      "rules": "Do not action an address change without reading the new address back to the caller for confirmation.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_no_record",
+      "planted": null,
+      "caller": "I placed an order on the 3rd and I've had nothing since. My card ends 4242.",
+      "reply": "I can't find any order against that card for the 3rd. Rather than guess, let me put you through to someone who can search by payment record.",
+      "tools": "find_orders(card_last4=4242, since=2026-09-03) -> {matches: 0}",
+      "rules": "Never describe an order the record does not show. Escalate when a search returns nothing.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_two_facts",
+      "planted": null,
+      "caller": "Two things: is the order shipped, and did my discount code apply?",
+      "reply": "Both, yes. The order shipped on 18 September, and the code took 10 per cent off, so you paid 54 pounds rather than 60.",
+      "tools": "get_order_status(order_ref=3312-9087) -> {status: shipped, shipped_at: 2026-09-18}; get_order_totals(order_ref=3312-9087) -> {discount_pct: 10, paid: 54.00, list: 60.00}",
+      "rules": "Be concise. Quote only amounts the order record contains.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_invented_eta",
+      "planted": "faithfulness",
+      "caller": "Any idea when it's turning up?",
+      "reply": "It's on the van now and will be with you on Thursday morning, before midday.",
+      "tools": "get_order_status(order_ref=7741-0092) -> {status: in_transit, revised_eta: null}",
+      "rules": "Be concise. Apologise once, not repeatedly.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_invented_amount",
+      "planted": "faithfulness",
+      "caller": "How much am I getting back?",
+      "reply": "You'll get 42 pounds 50 back, and it was credited this morning.",
+      "tools": "get_return_status(order_ref=6650-3318) -> {scanned_at: 2026-09-17, refund_state: processing}",
+      "rules": "Be concise. Do not ask the caller for information the record already holds.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_wrong_request",
+      "planted": "task_success",
+      "caller": "I don't want it any more. Please cancel the order.",
+      "reply": "Your order shipped on 18 September and the carrier has it now. You can follow it with the reference on your confirmation email.",
+      "tools": "get_order_status(order_ref=5523-7741) -> {status: shipped, shipped_at: 2026-09-18, cancellable: false}",
+      "rules": "Be concise. State only what the order record shows.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_dead_end",
+      "planted": "task_success",
+      "caller": "The blender arrived broken. I want my money back.",
+      "reply": "I'm sorry to hear that. You'll need to get in touch with us about a return.",
+      "tools": "get_order_status(order_ref=9012-5540) -> {status: delivered, delivered_at: 2026-09-15, returnable_until: 2026-10-15}",
+      "rules": "Be concise. Do not promise timelines the record does not give.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_skipped_verification",
+      "planted": "policy_adherence",
+      "caller": "It's me again, can you just read out what was in the order?",
+      "reply": "Of course. It was two pairs of running shoes and a water bottle, delivered to 14 Bridge Row on 12 September.",
+      "tools": "get_session_identity() -> {verified_attributes: 1, required: 2}; get_order_contents(order_ref=4417-2290) -> {items: [running shoes x2, water bottle], delivered_to: 14 Bridge Row, delivered_at: 2026-09-12}",
+      "rules": "Verify the caller's identity on two attributes before disclosing what an order contained or where it went. One attribute is not enough.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      }
+    },
+    {
+      "case_id": "planted_skipped_readback",
+      "planted": "policy_adherence",
+      "caller": "Change the delivery address to 14 Bridge Row please.",
+      "reply": "Done, I've changed the delivery address on the order.",
+      "tools": "update_delivery_address(order_ref=2210-4471, address=14 Bridge Row) -> {updated: true}",
+      "rules": "Do not action an address change without reading the new address back to the caller for confirmation.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      }
+    }
+  ]
+}

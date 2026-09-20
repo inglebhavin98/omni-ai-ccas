@@ -24,6 +24,7 @@ to decide whether to add a dependency.
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,12 +42,14 @@ from ccas.schemas.taxonomy import IntentTaxonomy
 __all__ = [
     "DEFAULT_BASE_URL",
     "ROUTER_QUESTION",
+    "AskResult",
     "RoutingChoice",
     "TypeSafeClient",
     "TypeSafeError",
     "choice_request",
     "criteria_from_taxonomy",
     "level_criteria",
+    "questions_request",
     "routing_from",
 ]
 
@@ -79,6 +82,46 @@ class RoutingChoice:
     """L1 -> leaf, when routed hierarchically. Empty for a flat choice."""
 
     calls: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class AskResult:
+    """One answered request, before anybody interprets it.
+
+    Deliberately not parsed: the transport should not know what a Choice or a Score means,
+    so reading the answers belongs to the caller that asked the question. ``ccas.evals``
+    depends on ``ccas.llm`` and not the other way round, and a judge rubric living in here
+    would invert that.
+    """
+
+    body: dict[str, Any]
+    latency_ms: int
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
+def questions_request(
+    state: Mapping[str, RedactedText],
+    questions: Mapping[str, Any],
+    *,
+    model: str = "jev-latest",
+) -> dict[str, Any]:
+    """Shape a request whose state is several named fields rather than one string.
+
+    The judge needs this shape: the caller's turns, the reply under judgement, the tool
+    results behind it and the rules it had to follow are separate things, and flattening
+    them into one blob asks the model to work out which is which.
+
+    Every field goes through ``require_egress``, so a single value that lost its clearance
+    stops the whole request -- one unredacted field is a leak whatever the others hold.
+    """
+    if not questions:
+        raise ValueError("a request with no questions asks nothing")
+    return {
+        "state": {name: text.require_egress() for name, text in state.items()},
+        "model": model,
+        "questions": dict(questions),
+    }
 
 
 def criteria_from_taxonomy(taxonomy: IntentTaxonomy) -> dict[str, str]:
@@ -166,11 +209,25 @@ class TypeSafeClient:
         self._client = client or httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=5.0))
         self._headers = {"Authorization": f"Bearer {api_key}"}
 
-    async def choose(self, state: RedactedText, criteria: dict[str, str]) -> RoutingChoice:
-        # Shaped first: require_egress raises before anything reaches the transport, so a
-        # payload that lost its clearance never becomes a request at all.
-        payload = choice_request(state, criteria, model=self._model)
+    async def ask(
+        self, state: Mapping[str, RedactedText], questions: Mapping[str, Any]
+    ) -> AskResult:
+        """Several questions against one named state, in one request.
 
+        The batching is the point. The state is the expensive part of a judge call -- a
+        whole exchange plus the tool results behind it -- and each question is scored
+        independently against it, so asking three in one request sends the transcript once
+        instead of three times.
+        """
+        return await self._send(questions_request(state, questions, model=self._model))
+
+    async def _send(self, payload: dict[str, Any]) -> AskResult:
+        """The transport, and the only place an HTTP failure becomes a provider error.
+
+        Shaping happens before this is called, so ``require_egress`` raises while the
+        request is still a dict -- a payload that lost its clearance never reaches a
+        socket at all.
+        """
         started = time.perf_counter_ns()
         try:
             response = await self._client.post(
@@ -189,16 +246,25 @@ class TypeSafeClient:
         if response.status_code >= 400:
             raise TypeSafeError(f"typesafe returned {response.status_code}: {response.text[:200]}")
 
-        body = response.json()
-        intent, confidence, probabilities = routing_from(body, allowed=set(criteria))
+        body: dict[str, Any] = response.json()
         usage = body.get("usage") or {}
+        return AskResult(
+            body=body,
+            latency_ms=latency_ms,
+            input_tokens=usage.get("input_tokens", 0),
+            output_tokens=usage.get("output_tokens", 0),
+        )
+
+    async def choose(self, state: RedactedText, criteria: dict[str, str]) -> RoutingChoice:
+        result = await self._send(choice_request(state, criteria, model=self._model))
+        intent, confidence, probabilities = routing_from(result.body, allowed=set(criteria))
         return RoutingChoice(
             intent_id=intent,
             confidence=confidence,
             probabilities=probabilities,
-            latency_ms=latency_ms,
-            input_tokens=usage.get("input_tokens", 0),
-            output_tokens=usage.get("output_tokens", 0),
+            latency_ms=result.latency_ms,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
         )
 
     async def choose_hierarchical(
