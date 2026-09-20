@@ -1,98 +1,162 @@
-# Resume here — 2026-09-19
+# Resume here — 2026-09-20
 
 A point-in-time note, not a maintained document. `docs/future-scoped-work.md` is the
 living list. Delete or replace it once the next session has picked the work up.
 
 ## State
 
-Branch `phase6/evals-timeout-verdict`, pushed, tree clean.
+`main` is at `0587747` (PR #1 merged) and green: **963 passed / 2 skipped**,
+`make voice` **95**, `ruff` and `mypy --strict` clean.
 
-    PR #1: https://github.com/inglebhavin98/omni-ai-ccas/pull/1
+**Three branches, two of them unreviewed work that is finished and waiting:**
 
-Green: `ruff format --check`, `ruff check`, `uv run mypy` (135 files), `pytest`
-**963 passed / 2 skipped**, `make voice` **95 passed**.
+| branch | PR | what | state |
+|---|---|---|---|
+| `fix/console-default-domain` | **#2 open** | console opened on a pack with no taxonomy; favicon 404 | green, 966 tests, ready to merge |
+| `spike/typesafe-jev-router` | none — evidence, not a change to merge | TypeSafe `jev` evaluation | green, 976 tests |
+| `docs/resume-2026-09-20` | this note | — | — |
 
 ## Do this first
 
-**Revoke the exposed key.** Outstanding since 2026-09-13 across three sessions. An invalid
-key returns 401; this one returns 429, so it authenticates.
+**1. Revoke the exposed OpenRouter key.** Outstanding since 2026-09-13, across five
+sessions. An invalid key returns 401; this one returns 429, so it authenticates.
 
     openrouter.ai/keys  ->  delete sk-or-v1-0b707...  ->  put the new key in .env
 
 The daily quota is per *account*, so a new key does not reset it. No session has been able
-to verify which key `.env` holds — reading it is blocked by the harness.
+to verify which key `.env` holds — reading it is blocked by the harness, deliberately.
 
-## What this branch did
+**2. Merge or review PR #2.** Small, green, and it fixes the first thing anyone opening the
+console hits.
 
-**The Rule 6 parity gate is green, with numbers.** 8 cases, **agreement 1.0**, 0 divergent,
-0 unmeasured. ADR-0014 said Rule 6 was unverified for `router` and had to run green before
-Module 6 could be called done. Discharged.
+**3. `.env` now also holds `TYPESAFE_API_KEY`** (added 2026-09-19). Nothing on any call
+path uses it; only `scripts/spike_jev_router.py` reads it.
 
-The two variants differ **fivefold in latency** while agreeing on every case:
-`openrouter` (nex-agi) 12,525 ms p95 against `openrouter_alt` (ling-3.0-flash-fin)
-2,347 ms. Nobody had compared them until the gate printed both, and that comparison is what
-unblocked the router evaluation below.
+## Quota state
 
-**ADR-0021** — a timeout is unmeasured only if the same model answered another row in the
-same run. ADR-0014's table was internally ambiguous (*cold model* listed as unavailable,
-*timeout* as a divergence, and a cold model is observed as a timeout). Parity is
-deliberately left on the old rule; the two harnesses disagree knowingly (6.6).
+OpenRouter free tier was exhausted on 2026-09-19 (~46 of 50) and resets 00:00 UTC. This is
+why **no successful routed conversation has yet been driven through the UI** — everything
+either side of the router is verified, the router step itself returns
+`ProviderRateLimitedError` and escalates honestly.
 
-**The router works: 23/26 exact (88.5%), category 100.0%, p95 3496 ms**, on 30 held-out
-rows through `openrouter_alt` (2026-09-19). Zero timeouts; the 4 unmeasured rows were 429s
-once the daily cap bit, correctly dropped from the denominator.
+## What the numbers say
 
-**Every prediction landed in the right L1 category.** All three exact misses are
-near-neighbours inside it — `switch_account`->`edit_account`,
-`contact_human_agent`->`contact_customer_service`,
-`create_account`->`registration_problems` — which are ambiguous label pairs in Bitext
-rather than routing failures.
+**The router works.** 30 held-out Bitext rows, `openrouter_alt`
+(`inclusionai/ling-3.0-flash-fin:free`), 2026-09-19:
+
+    23/26 exact (88.5%), category 100.0%, 4 unmeasured, p95 3496 ms
+
+Every prediction landed in the right L1 category; all three exact misses are
+near-neighbours inside it. The 4 unmeasured were 429s once the cap bit.
+
+**Rule 6 parity is verified with numbers:** 8 cases, agreement **1.0**, 0 divergent,
+0 unmeasured. The two variants differ fivefold in latency (12,525 ms vs 2,347 ms p95)
+while agreeing on everything.
 
 **The old 52.5% figure is retired — do not quote it.** It was capacity, not comprehension:
-all 19 of its failures were `expected -> <none>`, nothing was misrouted, and the failures
-were timeouts (per-row ceiling 92.25 s, run ≥2100 s, so instant parse failures would force
-the 21 successes to average 100 s each — above the ceiling, impossible).
+every failure was a timeout, nothing was misrouted. ADR-0021 has the arithmetic.
 
-What is still thin is **width**: 26 measured rows is roughly one per intent, so per-intent
-numbers mean little. 6.8 stays open for that reason alone.
+**Still thin: width.** 26 measured rows across 27 intents is about one each, so the
+headline is sound and per-intent detail is not (6.8).
 
-**Three Rule 2 holes closed on the handoff** (schema 1.0 → 1.1, migration note in
-tech-spec §1.7). `cti_attributes`, `NextBestAction.action`/`.rationale` and
-`VerifiedIdentity.attributes` were plain `str` on a model whose docstring promises every
-text-bearing field carries a report. The third was a **live leak**: verified attributes are
-caller-derived, and `escalate.py` copied them into a vendor-bound payload unredacted.
+## TypeSafe `jev` — what was learned
 
-**M6a now passes Rule 11** — gate test, demo stage and structured logs all present.
-`copilot/crm/` has the adapter boundary and `MockCrmAdapter`; `future-scoped-work.md` 7.1
-had claimed since Phase 4 that this file proved the contract, and it did not exist.
+Branch `spike/typesafe-jev-router`. **Nothing imports it and nothing is bound to it in
+`configs/models.yaml`.** Reports in `data/interim/jev_*.json`.
 
-Verified end to end: `cli.demo pipeline` with a PAN and an email redacts to
-`[PAYMENT_CARD_1]` / `[EMAIL_1]`, and the 11 attached-data pairs reaching the mock CRM
-contain neither. **6/8 stages live**; the two pending ones name their phase.
+**It is not an LLM.** A "System One" model: *"Code handles deterministic work and owns the
+control flow. The model appears only where the system needs programmable common sense."*
+It cannot generate text, cannot act autonomously, and returns a probability distribution
+over options you define — it cannot invent a value outside the schema. Philosophically
+close to Rule 4, which already forbids open-ended agent loops.
+
+Measured on the same 30 rows, same `score_router`:
+
+| | flat (one Choice over 27 leaves) | hierarchical (one Choice per level) |
+|---|---|---|
+| exact | **90.0 / 93.3 / 93.3%** (three runs) | 83.3% |
+| category | 96.7% (all three) | 86.7% |
+| p95 | **401–452 ms** | 863 ms |
+| API calls | 30 | 57 |
+
+Against the chat baseline's 88.5% / 100% / 3,496 ms. **Latency is the finding — roughly
+8× — and accuracy is a wash.** Note jev's category accuracy is slightly *worse*: it made
+the only cross-category error in either run (`feedback.complaint -> refund.get_refund`).
+Cost is negligible: **$0.0013 per 30-row run**, $0.042/M input tokens, output free.
+Limits: 64k context (32k for state), 1,200 req/min.
+
+**The documented shape lost, and the reason is our taxonomy.** The docs prescribe
+hierarchical descent for a taxonomy; greedy descent cannot recover an early mistake, and
+**this taxonomy's L1 categories are not mutually exclusive** — `delivery` vs `shipping`,
+and `order.cancel_order` beside a whole `cancel` category. Three of five errors are exactly
+that, including `delivery.delivery_options -> shipping.set_up_shipping_address` and its
+mirror. A flat question never commits to a category, so it sidesteps an ambiguity the
+hierarchy forces it to resolve first. The docs recommend hierarchy for "thousands of
+options"; 27 is not that. **This is worth knowing independently of jev.**
+
+Beam search is the documented fix for greedy and was deliberately not pursued: flat already
+wins on accuracy, latency *and* call count, so beam must beat 93.3% at 430 ms while
+spending more of both.
+
+### Three things that would bite on adoption
+
+1. **The 0.82 route threshold cannot be carried over.** jev's confidence is a statistic
+   over the distribution's *shape*, explicitly not the top probability, and jagged edge 8
+   says *"don't transfer thresholds between question formats."* Every policy gating on
+   `intent_confidence` needs re-deriving. Not a config swap.
+2. **It does not treat state as hostile** (jagged edge 6). Caller utterances are untrusted;
+   redaction handles PII and does nothing about injection.
+3. **It can never serve `respond`** — *"not trained to generate text."* Router and judge
+   only, so the graph would run two vendors.
+
+### Ruled out, not merely untested
+
+**jev cannot be the PII leak detector.** That would mean sending pre-redaction text to a
+vendor, which Rule 2 forbids outright. The sandbox blocked the experiment and was right to.
+It could only ever confirm *already-redacted* text is clean, which duplicates local
+Presidio. Local inference stays.
+
+### Untested and worth testing
+
+The **M6b judge dimensions** as Score — `faithfulness`, `task_success`,
+`policy_adherence`. Arguably a better fit than the router: M6b is unbuilt, and there is no
+800 ms budget there. `pii_leakage` is excluded by the point above.
+
+**No ADR written.** Adoption is a locked-stack change (Rule 5) and Rule 6 would still
+demand a second variant naming a distinct model — hard when the primitive is proprietary.
 
 ## What is left
 
-| what | why | blocked on |
-|---|---|---|
-| **Review and merge PR #1** | open, nothing reviewed | a reviewer |
-| **M6b** — judge, Ragas/DeepEval | the other half of Module 6, entirely unbuilt. Contracts already exist in `schemas/eval.py` (`JudgeDimension`, `JudgeScore`, `JudgeVerdict`) | nothing |
-| **Agent-desktop surface** | `GET /v1/handoffs/{id}` and `WS /v1/ws/copilot/{session_id}`, tech-spec §3.2a, still "planned" | nothing |
-| **Widen the router eval** (6.8) | 26 measured rows is ~1 per intent; the headline is sound, the per-intent detail is not | credits, or two days of free quota |
-| **Align the two harnesses** (6.6) | they disagree about a timeout | the first parity run that actually times out |
-| **A real browser test** (9.21) | a reviewer clicks the UI before reading an ADR | an ADR — Playwright is outside the locked stack |
-| **`docker-compose.yml` never started** (9.20) | valid YAML, written on a machine without Docker | a machine with Docker |
+| what | blocked on |
+|---|---|
+| **Merge PR #2** | a reviewer |
+| **M6b** — judge, Ragas/DeepEval; contracts exist in `schemas/eval.py`, runtime does not | nothing |
+| **Agent-desktop surface** — `GET /v1/handoffs/{id}`, `WS /v1/ws/copilot/{session_id}` | nothing |
+| **A routed conversation through the UI** | OpenRouter quota, or credits, or an Anthropic key |
+| **jev judge experiment + threshold study** | nothing — key is in `.env` |
+| **Widen the router eval** (6.8) | credits, or two days of free quota |
+| **Align the two eval harnesses** (6.6) | the first parity run that actually times out |
+| **A real browser test** (9.21) | an ADR — Playwright is outside the locked stack |
+| **`docker-compose.yml` never started** (9.20) | a machine with Docker |
+| **Label the insurance taxonomy** (9.12) | LLM quota. Would make a second pack routable |
 
-`src/cli/stages.py` has one `_pending` stage (`_stage_intent`) and it is an honest
-conditional — it fires only when the pack has no mined taxonomy and prints the command to
-mine it.
+Only `retail` has a mined taxonomy. Healthcare and insurance load and expose tools but
+escalate every turn, which is why the console default mattered.
+
+## Verified end to end (2026-09-19, real Chrome)
+
+`cli.demo pipeline` shows **6/8 stages live**; the two pending ones name their phase and
+fabricate nothing. Driving the console in Chrome: redaction preview, new session, a typed
+turn, all four panels, the tool prober with 9 tools — and **the unredacted PAN never
+reaches the DOM**, asserted programmatically. The missing piece is the router step.
 
 ## Known-unknown worth stating plainly
 
 Coverage on the mined insurance corpus tops out at **19.7%** and **the cause is not
 established**. Three explanations were tested and refuted — call direction, campaign
-variety, lexical repetition — and one lexical result was retracted after the measure turned
-out to carry a vocabulary-size artefact. `docs/future-scoped-work.md` 9.17 has the record.
-Do not re-propose the outbound-sales explanation; it is refuted with numbers.
+variety, lexical repetition — and a fourth apparent finding was retracted when its measure
+turned out to carry a vocabulary-size artefact. `future-scoped-work.md` 9.17 has the
+record. Do not re-propose the outbound-sales explanation; it is refuted with numbers.
 
 ## What not to touch
 
