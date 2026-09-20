@@ -1,4 +1,4 @@
-# Resume here — 2026-09-20
+# Resume here — 2026-09-20 (updated after the jev judge run)
 
 A point-in-time note, not a maintained document. `docs/future-scoped-work.md` is the
 living list. Delete or replace it once the next session has picked the work up.
@@ -13,7 +13,7 @@ living list. Delete or replace it once the next session has picked the work up.
 | branch | PR | what | state |
 |---|---|---|---|
 | `fix/console-default-domain` | **#2 open** | console opened on a pack with no taxonomy; favicon 404 | green, 966 tests, ready to merge |
-| `spike/typesafe-jev-router` | none — evidence, not a change to merge | TypeSafe `jev` evaluation | green, 976 tests |
+| `spike/typesafe-jev-router` | none — evidence, not a change to merge | TypeSafe `jev`: router, judge, threshold study | green, **1000 tests** |
 | `docs/resume-2026-09-20` | this note | — | — |
 
 ## Do this first
@@ -98,32 +98,109 @@ Beam search is the documented fix for greedy and was deliberately not pursued: f
 wins on accuracy, latency *and* call count, so beam must beat 93.3% at 430 ms while
 spending more of both.
 
-### Three things that would bite on adoption
+### The threshold study — the cutoff cannot be inherited
 
-1. **The 0.82 route threshold cannot be carried over.** jev's confidence is a statistic
-   over the distribution's *shape*, explicitly not the top probability, and jagged edge 8
-   says *"don't transfer thresholds between question formats."* Every policy gating on
-   `intent_confidence` needs re-deriving. Not a config swap.
+`ccas.evals.confidence` is the instrument, and both router harnesses now print the same
+table. Three identical 30-row jev runs:
+
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| recommended cutoff (95% floor) | 0.70 | 0.60 | 0.60 |
+| at 0.90 — automated | 19 | 19 | 19 |
+| at 0.90 — errors in those | **0** | **0** | **0** |
+| at 0.90 — deferred | 11 | 11 | 11 |
+
+The same two rows are wrong every run, at **0.51–0.60** and **0.85–0.86**, against a
+median **0.98** for correct ones. So the confidence carries real signal and is
+reproducible — better than a chat model's self-report. But:
+
+- 9 of 28 correct rows also fall below 0.90, so catching 2 errors costs **9 needless
+  escalations**.
+- One error sits at 0.86, **above the pack's 0.82** — transplanting the number would have
+  auto-routed a wrong answer.
+- The *recommended* cutoff moves between identical runs, because it turns on one row.
+- 19/19 is **≥84% at 95% confidence**, not 100%.
+
+**Two errors cannot calibrate a cutoff.** The instrument is sound; the sample is not. This
+wants 6.8's wider run, and it costs nothing extra once the rows are routed.
+
+The chat router's own 0.82 has still never been measured (6.11). The sweep is wired into
+`eval_router.py` and needs one quota'd run.
+
+### The judge — this is where jev fits
+
+`scripts/spike_jev_judge.py`, twelve constructed exchanges in
+`tests/fixtures/judge_cases.json`: six sound, six with exactly one planted defect. No
+corpus here labels reply quality and Rule 9 forbids pressing one into the role, so
+constructed cases are the honest grader — the method the vendor's own citation-check
+recipe uses.
+
+All three dimensions separate, in three consecutive runs:
+
+| dimension | gap | pass mark that works |
+|---|---|---|
+| `faithfulness` | +0.07 | (0.16, 0.23] |
+| `task_success` | +0.38 | (0.48, 0.86] |
+| `policy_adherence` | +0.60 | (0.05, 0.65] |
+
+**Those windows do not intersect, so there is no single pass mark.** The schema's natural
+default of 0.75 raises 8 false alarms in 36 verdicts. Per-dimension marks of roughly
+**0.20 / 0.60 / 0.30** hold in all three runs.
+
+One request carries all three dimensions against one state: **$0.0005 for twelve cases**,
+p95 **929 ms**, no latency budget to breach because M6b is offline.
+
+**Faithfulness is the weak dimension**, and the reason is visible rather than mysterious:
+`planted_skipped_verification` is fully grounded in its tool results and scored 0.23,
+which looks like the policy breach bleeding into a dimension the vendor documents as
+independently scored. n=1 — a lead, not a finding.
+
+**Three gaps the build found and reading could not:**
+
+1. `JudgeScore.rationale` is required text and jev cannot write any. It is now authored in
+   code from the chosen rubric level — which is the better artefact, because it cannot
+   describe a level the model did not pick.
+2. `JudgeVerdict.judge_provider` is a `ProviderName` with no member for a non-chat vendor.
+   Adoption means a `schemas/` change and a version bump.
+3. My own first fixture had three bad labels — two planted cases carried rules forbidding
+   the very defect planted in them, so the judge was scored wrong for being right. **A
+   fixture bug reads exactly like a model error.** Corrected, with the reasoning kept in
+   the file and a test pinning that each case fails at most one dimension.
+
+### Three things that would still bite on adoption
+
+1. **No threshold transfers** — neither the router's 0.82 nor a single judge pass mark.
+   Each has to be re-derived, and the judge needs one *per dimension*.
 2. **It does not treat state as hostile** (jagged edge 6). Caller utterances are untrusted;
    redaction handles PII and does nothing about injection.
-3. **It can never serve `respond`** — *"not trained to generate text."* Router and judge
-   only, so the graph would run two vendors.
+3. **It can never serve `respond`** — "not trained to generate text." So the graph runs two
+   vendors, and Rule 6 still wants a second variant naming a distinct model, which is hard
+   when the primitive is proprietary.
 
 ### Ruled out, not merely untested
 
 **jev cannot be the PII leak detector.** That would mean sending pre-redaction text to a
-vendor, which Rule 2 forbids outright. The sandbox blocked the experiment and was right to.
-It could only ever confirm *already-redacted* text is clean, which duplicates local
-Presidio. Local inference stays.
+vendor, which Rule 2 forbids outright. It could only ever confirm *already-redacted* text
+is clean, which duplicates local Presidio with a weaker guarantee.
+`ccas.evals.judge_rubric.RUBRICS` has no entry for `pii_leakage` and a test pins the
+absence, so nobody adds one as an oversight. Local inference stays. **This is the answer,
+not a gap.**
 
-### Untested and worth testing
+### The decision, stated plainly
 
-The **M6b judge dimensions** as Score — `faithfulness`, `task_success`,
-`policy_adherence`. Arguably a better fit than the router: M6b is unbuilt, and there is no
-800 ms budget there. `pii_leakage` is excluded by the point above.
+**Not the router.** It already works (88.5% exact, 100% category), the chat path has no
+800 ms budget to rescue, and adoption there puts a vendor on the live call path for an
+8× latency win nothing currently needs — against a non-transferable threshold and a Rule 6
+problem with no clean answer.
 
-**No ADR written.** Adoption is a locked-stack change (Rule 5) and Rule 6 would still
-demand a second variant naming a distinct model — hard when the primitive is proprietary.
+**The judge is the real case.** M6b is unbuilt, so there is nothing to migrate; it runs
+offline on a 5% sample, so latency is irrelevant; separation is demonstrated on every
+dimension it is allowed to judge; and the cost is three orders of magnitude below a chat
+judge. **What is missing before an ADR is width** — twelve cases prove separation, not
+calibration, and the labels have had one rater.
+
+**No ADR written.** Adoption is a locked-stack change (Rule 5) and this is the user's call,
+not mine.
 
 ## What is left
 
@@ -133,8 +210,11 @@ demand a second variant naming a distinct model — hard when the primitive is p
 | **M6b** — judge, Ragas/DeepEval; contracts exist in `schemas/eval.py`, runtime does not | nothing |
 | **Agent-desktop surface** — `GET /v1/handoffs/{id}`, `WS /v1/ws/copilot/{session_id}` | nothing |
 | **A routed conversation through the UI** | OpenRouter quota, or credits, or an Anthropic key |
-| **jev judge experiment + threshold study** | nothing — key is in `.env` |
-| **Widen the router eval** (6.8) | credits, or two days of free quota |
+| ~~jev judge experiment + threshold study~~ | **done 2026-09-20** — see above |
+| **Widen the judge fixture past 12 cases**, and have a second person read the labels | nothing |
+| **An ADR on adopting jev for the M6b judge** | a decision, and the width above |
+| **Widen the router eval** (6.8) — also re-derives the cutoff for free | credits, or two days of free quota |
+| **Measure the chat router's own 0.82 cutoff** (6.11) | one `make eval-router` run. No new code |
 | **Align the two eval harnesses** (6.6) | the first parity run that actually times out |
 | **A real browser test** (9.21) | an ADR — Playwright is outside the locked stack |
 | **`docker-compose.yml` never started** (9.20) | a machine with Docker |
