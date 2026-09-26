@@ -129,7 +129,7 @@ def test_every_judge_case_fails_at_most_the_dimension_it_plants() -> None:
 
     repo = Path(__file__).resolve().parents[3]
     cases = json.loads((repo / "tests" / "fixtures" / "judge_cases.json").read_text())["cases"]
-    assert len(cases) >= 8
+    assert len(cases) >= 30
     assert {c["case_id"] for c in cases}.__len__() == len(cases)
     for case in cases:
         failing = [name for name, ok in case["expect"].items() if not ok]
@@ -137,3 +137,8 @@ def test_every_judge_case_fails_at_most_the_dimension_it_plants() -> None:
         assert (failing[0] if failing else None) == case["planted"], case["case_id"]
         assert set(case["expect"]) == {d.value for d in RUBRICS}, case["case_id"]
         assert all(case[field].strip() for field in ("caller", "reply", "tools", "rules"))
+        assert case["domain"]
+    # More than one pack, or the rubric is only shown to work on the vertical it was
+    # written against -- which is the failure Rule 1 exists to prevent, and it would
+    # still produce numbers.
+    assert len({c["domain"] for c in cases}) >= 2

@@ -56,6 +56,7 @@ PASS_MARKS = (0.30, 0.40, 0.50, 0.60, 0.70, 0.75, 0.80, 0.90)
 @dataclass(frozen=True, slots=True)
 class Judged:
     case_id: str
+    domain: str
     planted: str | None
     expect: dict[str, bool]
     scores: tuple[JudgeScore, ...]
@@ -73,6 +74,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--domains", type=Path, default=Path("domains"))
     p.add_argument("--cases", type=Path, default=Path("tests/fixtures/judge_cases.json"))
     p.add_argument("--out", type=Path, default=None)
+    p.add_argument(
+        "--only",
+        choices=[d.value for d in DIMENSIONS],
+        default=None,
+        help="ask one dimension per request instead of batching all three. The vendor "
+        "documents that batching does not change an answer; this is how that is checked",
+    )
     return p
 
 
@@ -83,11 +91,21 @@ async def run(args: argparse.Namespace) -> int:
         return 2
 
     cases = json.loads(args.cases.read_text(encoding="utf-8"))["cases"]
-    loaded = load_domain(args.domains, args.domain)
-    redaction = build_pipeline(
-        Path("configs") / "redaction_policy.yaml", pack=loaded.pack, mode=RedactionMode.BATCH
-    )
-    questions = judge_questions(DIMENSIONS)
+    # One pipeline per pack, not one for the run. Redaction patterns are pack data
+    # (Rule 1), so grading a healthcare exchange through the retail pack's patterns would
+    # quietly measure the wrong redactor -- and a judge rubric that only works on the pack
+    # it was written against is not domain-agnostic, it is just untested.
+    packs = sorted({case.get("domain", args.domain) for case in cases})
+    pipelines = {
+        name: build_pipeline(
+            Path("configs") / "redaction_policy.yaml",
+            pack=load_domain(args.domains, name).pack,
+            mode=RedactionMode.BATCH,
+        )
+        for name in packs
+    }
+    asked = tuple(d for d in DIMENSIONS if d.value == args.only) if args.only else DIMENSIONS
+    questions = judge_questions(asked)
     client = TypeSafeClient(
         api_key=settings.typesafe_api_key.get_secret_value(),
         base_url=settings.typesafe_base_url,
@@ -96,6 +114,7 @@ async def run(args: argparse.Namespace) -> int:
 
     planted = sum(1 for c in cases if c["planted"])
     print(f"  cases        {len(cases)} constructed exchanges, {planted} with a planted defect")
+    print(f"  packs        {', '.join(packs)}")
     print(f"  dimensions   {', '.join(d.value for d in DIMENSIONS)}")
     print(f"  asking       one request per case, {len(questions)} questions each")
     print(f"  model        typesafe:{settings.typesafe_model}\n")
@@ -109,6 +128,7 @@ async def run(args: argparse.Namespace) -> int:
             # the same placeholder in the caller's turn and in the tool result -- two
             # tokens for one value would read to the judge as a reply citing a value that
             # is not in the results, and it would be right to mark it down for that.
+            redaction = pipelines[case.get("domain", args.domain)]
             allocator = redaction.new_allocator(PlaceholderVault())
             state = {
                 name: redaction.redact(case[name], allocator)
@@ -119,9 +139,10 @@ async def run(args: argparse.Namespace) -> int:
                 judged.append(
                     Judged(
                         case_id=case["case_id"],
+                        domain=case.get("domain", args.domain),
                         planted=case["planted"],
                         expect=case["expect"],
-                        scores=judge_scores(result.body, DIMENSIONS),
+                        scores=judge_scores(result.body, asked),
                         latency_ms=result.latency_ms,
                         input_tokens=result.input_tokens,
                         output_tokens=result.output_tokens,
@@ -142,7 +163,7 @@ async def run(args: argparse.Namespace) -> int:
             print(f"    {count}x {name}")
         return 3
 
-    _report(judged, elapsed, errors)
+    _report(judged, elapsed, errors, asked)
     LOG.info(
         "spike.jev_judge",
         correlation_id="spike-judge",
@@ -156,17 +177,22 @@ async def run(args: argparse.Namespace) -> int:
     return 0
 
 
-def _report(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> None:
+def _report(
+    judged: list[Judged],
+    elapsed: float,
+    errors: dict[str, int],
+    dims: tuple[JudgeDimension, ...] = DIMENSIONS,
+) -> None:
     tokens = sum(j.input_tokens + j.output_tokens for j in judged)
     latencies = sorted(j.latency_ms for j in judged)
     p95 = latencies[max(0, -(-95 * len(latencies) // 100) - 1)]
 
     print("  scores (bold = the dimension this case was built to fail)")
-    header = "  ".join(f"{d.value[:9]:>9}" for d in DIMENSIONS)
+    header = "  ".join(f"{d.value[:9]:>9}" for d in dims)
     print(f"    {'case':<30}  {header}")
     for j in judged:
         cells = []
-        for d in DIMENSIONS:
+        for d in dims:
             mark = "*" if j.planted == d.value else " "
             cells.append(f"{j.score_for(d):>8.2f}{mark}")
         print(f"    {j.case_id:<30}  {'  '.join(cells)}")
@@ -174,7 +200,7 @@ def _report(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> Non
     print("\n  separation per dimension (does a score gap exist at all?)")
     print(f"    {'dimension':<18}  {'sound (min)':>12}  {'planted (max)':>14}  {'gap':>7}")
     separable: dict[str, float] = {}
-    for d in DIMENSIONS:
+    for d in dims:
         sound = [j.score_for(d) for j in judged if j.expect[d.value]]
         planted = [j.score_for(d) for j in judged if not j.expect[d.value]]
         if not sound or not planted:
@@ -183,9 +209,34 @@ def _report(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> Non
         separable[d.value] = gap
         print(f"    {d.value:<18}  {min(sound):>12.2f}  {max(planted):>14.2f}  {gap:>+7.2f}")
 
+    print("\n  separation per pack (a rubric that only works on one vertical is not one)")
+    print(
+        f"    {'pack':<14}  {'cases':>5}  {'faithfuln':>10}  {'task_succ':>10}  {'policy_ad':>10}"
+    )
+    for pack in sorted({j.domain for j in judged}):
+        rows = [j for j in judged if j.domain == pack]
+        cells = []
+        for d in dims:
+            sound = [j.score_for(d) for j in rows if j.expect[d.value]]
+            planted = [j.score_for(d) for j in rows if not j.expect[d.value]]
+            cells.append(
+                f"{min(sound) - max(planted):>+10.2f}" if sound and planted else f"{'--':>10}"
+            )
+        print(f"    {pack:<14}  {len(rows):>5}  {'  '.join(cells)}")
+
+    print("\n  cross-dimension bleed (does a defect elsewhere drag a sound dimension down?)")
+    print(f"    {'dimension':<18}  {'clean cases':>12}  {'defect elsewhere':>17}  {'drop':>7}")
+    for d in dims:
+        clean = [j.score_for(d) for j in judged if j.planted is None]
+        elsewhere = [j.score_for(d) for j in judged if j.planted not in (None, d.value)]
+        if not clean or not elsewhere:
+            continue
+        mc, me = sum(clean) / len(clean), sum(elsewhere) / len(elsewhere)
+        print(f"    {d.value:<18}  {mc:>12.2f}  {me:>17.2f}  {mc - me:>+7.2f}")
+
     print("\n  the pass mark each dimension would need (a gap is an interval, not a number)")
     print(f"    {'dimension':<18}  {'works for marks in':>22}")
-    for d in DIMENSIONS:
+    for d in dims:
         sound = [j.score_for(d) for j in judged if j.expect[d.value]]
         planted = [j.score_for(d) for j in judged if not j.expect[d.value]]
         if not sound or not planted:
@@ -199,7 +250,7 @@ def _report(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> Non
     for mark in PASS_MARKS:
         correct = missed = false_alarm = 0
         for j in judged:
-            for d in DIMENSIONS:
+            for d in dims:
                 verdict = j.score_for(d) >= mark
                 if verdict == j.expect[d.value]:
                     correct += 1
@@ -207,7 +258,7 @@ def _report(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> Non
                     missed += 1  # said fine, was built broken
                 else:
                     false_alarm += 1
-        total = len(judged) * len(DIMENSIONS)
+        total = len(judged) * len(dims)
         flag = "  <- default" if abs(mark - DEFAULT_PASS_MARK) < 1e-9 else ""
         print(f"    {mark:>5.2f}  {correct:>4}/{total:<3}  {missed:>15}  {false_alarm:>13}{flag}")
 
@@ -239,6 +290,7 @@ def _as_json(judged: list[Judged], elapsed: float, errors: dict[str, int]) -> di
         "cases": [
             {
                 "case_id": j.case_id,
+                "domain": j.domain,
                 "planted": j.planted,
                 "expect": j.expect,
                 "latency_ms": j.latency_ms,

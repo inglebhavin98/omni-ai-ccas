@@ -97,6 +97,13 @@ class VLLMProvider(LLMProvider):
             # for the same reason OpenRouter converts: a raw httpx error propagating out of
             # a graph node takes the whole call down.
             raise ProviderTimeoutError(f"vLLM did not respond within {timeout_ms}ms") from exc
+        except httpx.TransportError as exc:
+            # The rest of the family -- a reset socket, a protocol violation. Caught for
+            # the same reason as the two above, and missing for the same reason they were
+            # not: nobody had seen one until a live run produced it.
+            raise ProviderUnavailableError(
+                f"connection to vLLM failed: {type(exc).__name__}"
+            ) from exc
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         payload = build_payload(request, stream=False)

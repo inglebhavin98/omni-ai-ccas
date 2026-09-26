@@ -120,3 +120,18 @@ def test_the_table_has_a_line_per_band_and_a_header() -> None:
     assert len(lines) == 3
     assert "cutoff" in lines[0] and "def cat" in lines[0]
     assert lines[1].startswith("   0.50")
+
+
+def test_a_connection_that_failed_is_unserved_not_a_wrong_answer() -> None:
+    """ADR-0014's rule, applied to the exception that was missing from it.
+
+    `ProviderUnavailableError` means the request was never served -- a refused or dropped
+    connection. Scoring it as a prediction reports a broken router when the socket was
+    what broke, and it is the same mistake as scoring a 429.
+    """
+    from ccas.evals.router_accuracy import outcome_for_exception
+    from ccas.llm.base import ProviderUnavailableError
+
+    outcome = outcome_for_exception(ProviderUnavailableError("connection failed"))
+    assert outcome.unavailable
+    assert not outcome.answered

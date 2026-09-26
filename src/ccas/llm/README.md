@@ -8,7 +8,7 @@ process.
 
 | File | Holds |
 |---|---|
-| `base.py` | `LLMProvider` protocol, `LLMProviderError`, `ProviderRateLimitedError` |
+| `base.py` | `LLMProvider` protocol, `LLMProviderError`, `ProviderRateLimitedError`, `ProviderTimeoutError` |
 | `bindings.py` | `load_bindings()` over `configs/models.yaml`; resolves a node to a model |
 | `factory.py` | `build_provider()` — binding → live client, with an actionable error |
 | `openrouter_provider.py` | OpenAI-compatible gateway. The configured default |
@@ -17,6 +17,7 @@ process.
 | `capabilities.py` | Per-model `structured_mode` — most free models ignore `response_format` |
 | `json_repair.py` | Recovering structured output from models that will not honour a schema |
 | `prompt.py` | Prompt assembly with a stable, cacheable prefix |
+| `typesafe.py` | **A spike, not a binding.** TypeSafe `jev` — a decision model, not a chat model. Deliberately *not* an `LLMProvider`: that protocol is chat-shaped (complete / stream / structured) and jev cannot generate text at all, so forcing it through would misrepresent both. Nothing imports it and nothing is bound to it in `configs/models.yaml`; adoption would be a locked-stack change needing an ADR (Rule 5) |
 
 ## Two rules specific to this package
 

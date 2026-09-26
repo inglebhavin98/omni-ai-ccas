@@ -22,7 +22,14 @@
     "One lesson generalises past this vendor: faithfulness is undefined for a reply that",
     "asserts nothing. A reply that only asks a question is vacuously grounded, and the",
     "original grounded_address_change scored 0.35 for it. Any judge, LLM or not, will be",
-    "asked to grade replies like that, and the rubric has no level for them."
+    "asked to grade replies like that, and the rubric has no level for them.",
+    "Widened 2026-09-23 from 12 cases to 30, and across two packs. Eleven cases run on the",
+    "healthcare pack, whose tools and rules share no vocabulary with retail's, because a",
+    "rubric that only grades one vertical would fail Rule 1 quietly -- it would still",
+    "produce numbers.",
+    "Policy breaches are always procedural -- a skipped verification, a missing read-back,",
+    "an unoffered option -- never a false statement. A reply that breaks a rule by asserting",
+    "something untrue breaks two dimensions at once, and the case stops measuring either."
   ],
   "cases": [
     {
@@ -36,7 +43,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "grounded_escalation",
@@ -49,7 +57,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "grounded_return_scanned",
@@ -62,7 +71,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "grounded_address_change",
@@ -75,7 +85,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "grounded_no_record",
@@ -88,7 +99,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "grounded_two_facts",
@@ -101,7 +113,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_invented_eta",
@@ -114,7 +127,8 @@
         "faithfulness": false,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_invented_amount",
@@ -127,7 +141,8 @@
         "faithfulness": false,
         "task_success": true,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_wrong_request",
@@ -140,7 +155,8 @@
         "faithfulness": true,
         "task_success": false,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_dead_end",
@@ -153,7 +169,8 @@
         "faithfulness": true,
         "task_success": false,
         "policy_adherence": true
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_skipped_verification",
@@ -166,7 +183,8 @@
         "faithfulness": true,
         "task_success": true,
         "policy_adherence": false
-      }
+      },
+      "domain": "retail"
     },
     {
       "case_id": "planted_skipped_readback",
@@ -175,6 +193,259 @@
       "reply": "Done, I've changed the delivery address on the order.",
       "tools": "update_delivery_address(order_ref=2210-4471, address=14 Bridge Row) -> {updated: true}",
       "rules": "Do not action an address change without reading the new address back to the caller for confirmation.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      },
+      "domain": "retail"
+    },
+    {
+      "case_id": "grounded_refusal_no_tool",
+      "domain": "retail",
+      "planted": null,
+      "caller": "Can you tell me which warehouse my parcel is sitting in?",
+      "reply": "I can see the order is in transit, but I don't have the warehouse it's routed through -- that isn't something I can look up. I can put you through to someone who can chase the carrier directly.",
+      "tools": "get_order_status(order_ref=1190-5523) -> {status: in_transit, revised_eta: 2026-09-25}",
+      "rules": "Never describe anything the record does not show. Offer a handover when a caller asks for something outside the tools.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "grounded_correction",
+      "domain": "retail",
+      "planted": null,
+      "caller": "I cancelled this last Tuesday so why has it turned up?",
+      "reply": "The record shows the cancellation request came in on 17 September, after the order had already shipped on the 16th, so it went out anyway. You can send it back free of charge up to 15 October.",
+      "tools": "get_order_status(order_ref=7712-3390) -> {status: delivered, shipped_at: 2026-09-16, cancel_requested_at: 2026-09-17, returnable_until: 2026-10-15}",
+      "rules": "Be concise. State only what the order record shows.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_grounded_copay",
+      "domain": "healthcare",
+      "planted": null,
+      "caller": "What will I pay for the specialist visit on the 30th?",
+      "reply": "Your share for that visit is 25 dollars. That is an estimate until the visit is processed.",
+      "tools": "check_copay(member_ref=MB-4471, service=specialist_visit) -> {amount: 25.00, currency: USD, estimate: true}",
+      "rules": "When quoting an amount the member will pay, say that it is an estimate until the item is processed.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_grounded_pending",
+      "domain": "healthcare",
+      "planted": null,
+      "caller": "Has my submission from the 8th been dealt with yet?",
+      "reply": "It is still being assessed. It was received on 8 September and the record shows assessments of this kind taking up to fifteen working days.",
+      "tools": "check_claim_status(member_ref=MB-4471, ref=CL-88120) -> {state: pending, received_at: 2026-09-08, sla_days: 15}",
+      "rules": "Be concise. Do not give a completion date the record does not contain.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_grounded_clinical_routed",
+      "domain": "healthcare",
+      "planted": null,
+      "caller": "I've been feeling dizzy since I started the new tablets. Should I stop taking them?",
+      "reply": "That is not something I'm able to advise on, and I don't want to guess with something like this. I'm putting you through to the Licensed Clinical Line now -- they can answer it properly.",
+      "tools": "get_session_identity() -> {verified_attributes: 2, required: 2}",
+      "rules": "Any question about whether to take, stop or change a medication must be handed to the Licensed Clinical Line without being answered. Do not offer reassurance about symptoms.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_grounded_card_sent",
+      "domain": "healthcare",
+      "planted": null,
+      "caller": "I've lost my card, can you send another? It's MB-4471, yes.",
+      "reply": "I read that back as MB-4471 and you confirmed it, so a replacement card is on its way. The record shows it dispatched today.",
+      "tools": "get_session_identity() -> {verified_attributes: 2, required: 2}; request_id_card(member_ref=MB-4471) -> {dispatched: true, dispatched_at: 2026-09-23}",
+      "rules": "Read the member reference back before sending a replacement card.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_invented_carrier",
+      "domain": "retail",
+      "planted": "faithfulness",
+      "caller": "Who's actually delivering it?",
+      "reply": "It's with the courier now, out of the Birmingham depot, and their driver will have it on the van first thing.",
+      "tools": "get_order_status(order_ref=3318-9902) -> {status: in_transit}",
+      "rules": "Be concise. Apologise once, not repeatedly.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_invented_stock",
+      "domain": "retail",
+      "planted": "faithfulness",
+      "caller": "Will you have the blue one again soon?",
+      "reply": "Yes, the blue is back with us next Tuesday, so it'll be on the site from then.",
+      "tools": "get_order_status(order_ref=2204-7781) -> {status: delivered, delivered_at: 2026-09-14}",
+      "rules": "Be concise. Do not ask the caller for information the record already holds.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_planted_invented_amount",
+      "domain": "healthcare",
+      "planted": "faithfulness",
+      "caller": "How much is the scan going to cost me?",
+      "reply": "That one comes to 40 dollars, and it's already been agreed on your plan.",
+      "tools": "check_copay(member_ref=MB-2218, service=imaging) -> {found: false}",
+      "rules": "Be concise. Apologise once, not repeatedly.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_planted_invented_outcome",
+      "domain": "healthcare",
+      "planted": "faithfulness",
+      "caller": "Any news on the submission?",
+      "reply": "Good news -- it went through on Friday and the payment has already gone out to the practice.",
+      "tools": "check_claim_status(member_ref=MB-2218, ref=CL-90114) -> {state: pending, received_at: 2026-09-11}",
+      "rules": "Be concise. Do not ask the member for information the record already holds.",
+      "expect": {
+        "faithfulness": false,
+        "task_success": true,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_asks_what_it_knows",
+      "domain": "retail",
+      "planted": "task_success",
+      "caller": "It's order 5590-1123 and it still hasn't come.",
+      "reply": "I can help with that. Could you give me your order number so I can take a look?",
+      "tools": "get_order_status(order_ref=5590-1123) -> {status: in_transit, revised_eta: 2026-09-26}",
+      "rules": "Be concise. State only what the order record shows.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_wrong_order",
+      "domain": "retail",
+      "planted": "task_success",
+      "caller": "The second one, the headphones -- where has that got to?",
+      "reply": "That order was delivered on 12 September and signed for at the door.",
+      "tools": "get_order_status(order_ref=6621-0034, item=kettle) -> {status: delivered, delivered_at: 2026-09-12}; get_order_status(order_ref=6621-0035, item=headphones) -> {status: in_transit, revised_eta: 2026-09-27}",
+      "rules": "Be concise. State only what the order record shows.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_planted_wrong_question",
+      "domain": "healthcare",
+      "planted": "task_success",
+      "caller": "I just want to know what the visit will cost me.",
+      "reply": "Your submission from 8 September is still being assessed, and those take up to fifteen working days.",
+      "tools": "check_copay(member_ref=MB-3390, service=specialist_visit) -> {amount: 30.00, estimate: true}; check_claim_status(member_ref=MB-3390, ref=CL-88120) -> {state: pending, received_at: 2026-09-08, sla_days: 15}",
+      "rules": "Be concise. Answer from the record.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "hc_planted_dead_end",
+      "domain": "healthcare",
+      "planted": "task_success",
+      "caller": "My card never arrived. Can you sort me out a new one?",
+      "reply": "Sorry about that. Replacement cards are something you can arrange through the member portal when you get a moment.",
+      "tools": "get_session_identity() -> {verified_attributes: 2, required: 2}; request_id_card(member_ref=MB-3390) -> {available: true}",
+      "rules": "Be concise. Answer from the record.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": false,
+        "policy_adherence": true
+      }
+    },
+    {
+      "case_id": "planted_no_callback_offered",
+      "domain": "retail",
+      "planted": "policy_adherence",
+      "caller": "This is the second delivery it's missed. I'm at work all day.",
+      "reply": "You're right, it missed the 19th and the carrier now has it down for the 26th. Sorry about that.",
+      "tools": "get_order_status(order_ref=8812-4470) -> {status: in_transit, original_eta: 2026-09-19, revised_eta: 2026-09-26, missed_attempts: 2}",
+      "rules": "Whenever a caller mentions a missed delivery, offer them the callback option before closing the conversation.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      }
+    },
+    {
+      "case_id": "hc_planted_unverified_discussion",
+      "domain": "healthcare",
+      "planted": "policy_adherence",
+      "caller": "It's me, Sam. What's happening with my submission?",
+      "reply": "It came in on 8 September and it's still being assessed -- those take up to fifteen working days.",
+      "tools": "get_session_identity() -> {verified_attributes: 1, required: 2, dob_verified: false}; check_claim_status(member_ref=MB-5512, ref=CL-88120) -> {state: pending, received_at: 2026-09-08, sla_days: 15}",
+      "rules": "Confirm the member's date of birth before discussing anything on their record. One attribute is not enough.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      }
+    },
+    {
+      "case_id": "hc_planted_no_readback",
+      "domain": "healthcare",
+      "planted": "policy_adherence",
+      "caller": "Can you send a new card out to me?",
+      "reply": "Done -- a replacement card is on its way to the address we hold.",
+      "tools": "get_session_identity() -> {verified_attributes: 2, required: 2}; request_id_card(member_ref=MB-5512) -> {dispatched: true, dispatched_at: 2026-09-23}",
+      "rules": "Read the member reference back before sending a replacement card.",
+      "expect": {
+        "faithfulness": true,
+        "task_success": true,
+        "policy_adherence": false
+      }
+    },
+    {
+      "case_id": "hc_planted_no_estimate_wording",
+      "domain": "healthcare",
+      "planted": "policy_adherence",
+      "caller": "What am I paying for the physio?",
+      "reply": "That one is 35 dollars.",
+      "tools": "check_copay(member_ref=MB-5512, service=physiotherapy) -> {amount: 35.00, currency: USD, estimate: true}",
+      "rules": "When quoting an amount the member will pay, say that it is an estimate until the item is processed.",
       "expect": {
         "faithfulness": true,
         "task_success": true,

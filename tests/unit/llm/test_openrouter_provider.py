@@ -268,3 +268,39 @@ async def test_an_unreachable_host_is_unavailable_not_an_error() -> None:
 
     with pytest.raises(ProviderUnavailableError, match="unreachable"):
         await provider(handler).complete(request())
+
+
+async def test_a_connection_dropped_mid_read_does_not_escape_as_an_httpx_error() -> None:
+    """Found by the live Rule 6 gate, not by reasoning about it.
+
+    `_post` converted `ConnectError` and `TimeoutException` and let the rest of
+    `httpx.TransportError` through -- so a connection the vendor dropped part-way arrived
+    at the caller as a bare `httpx.ReadError`. The parity run caught it the only way it
+    could: the exception is not an `LLMProviderError`, so `_route`'s handler did not match
+    and one flaky row killed all eight, taking Rule 6's verification with it.
+
+    Nothing was served here, so the verdict is `unavailable` and the row leaves the
+    denominator (ADR-0014) -- a dropped socket is not a wrong answer.
+    """
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise httpx.ReadError("connection reset by peer")
+
+    with pytest.raises(ProviderUnavailableError, match="connection to openrouter failed"):
+        await provider(handler).complete(request())
+
+
+async def test_a_dropped_connection_is_not_retried() -> None:
+    """Deliberate. The ladder retries a timeout because nothing was sent successfully; a
+    transport error can land after the request reached the vendor, and replaying it would
+    risk asking twice for something that already happened once."""
+    calls = 0
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        raise httpx.ReadError("connection reset by peer")
+
+    with pytest.raises(ProviderUnavailableError):
+        await provider(handler, max_attempts=3, backoff_ms=1).complete(request())
+    assert calls == 1

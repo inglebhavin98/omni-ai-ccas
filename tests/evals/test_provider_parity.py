@@ -25,7 +25,12 @@ import pytest
 from ccas.config.settings import Settings
 from ccas.evals.parity import ParityCase, VariantOutcome, compare_variants
 from ccas.graph.router import IntentRouter
-from ccas.llm.base import LLMProvider, LLMProviderError, ProviderRateLimitedError
+from ccas.llm.base import (
+    LLMProvider,
+    LLMProviderError,
+    ProviderRateLimitedError,
+    ProviderUnavailableError,
+)
 from ccas.llm.bindings import MIN_VARIANTS, load_bindings
 from ccas.llm.factory import build_provider
 from ccas.observability.logging import get_logger
@@ -108,9 +113,13 @@ async def _route(
     started = time.perf_counter_ns()
     try:
         prediction = await router.classify(redacted(case.utterance), history=())
-    except ProviderRateLimitedError as exc:
-        # Nobody served this. Not a disagreement -- see ccas.evals.parity.
-        return VariantOutcome(error=f"rate limited: {exc}"[:160], unavailable=True)
+    except (ProviderRateLimitedError, ProviderUnavailableError) as exc:
+        # Nobody served this. Not a disagreement -- see ccas.evals.parity. A refused or
+        # dropped connection says that as plainly as a 429 does; counting it as a
+        # divergence reports two models disagreeing when neither one answered.
+        return VariantOutcome(
+            error=f"unserved: {type(exc).__name__}: {exc}"[:160], unavailable=True
+        )
     except (LLMProviderError, ValueError, TimeoutError) as exc:
         return VariantOutcome(error=f"{type(exc).__name__}: {exc}"[:160])
     return VariantOutcome(

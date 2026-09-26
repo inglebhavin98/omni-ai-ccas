@@ -162,3 +162,16 @@ async def test_a_read_timeout_never_escapes_as_an_httpx_error() -> None:
 
     with pytest.raises(ProviderTimeoutError):
         await provider(handler).complete(request())
+
+
+async def test_a_connection_dropped_mid_read_does_not_escape_as_an_httpx_error() -> None:
+    """The same gap the OpenRouter binding had: `ConnectError` and `TimeoutException` were
+    converted and the rest of `httpx.TransportError` was not, so a dropped socket reached
+    a graph node as a raw httpx exception -- which is exactly what the docstring above
+    says must not happen."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise httpx.ReadError("connection reset by peer")
+
+    with pytest.raises(ProviderUnavailableError, match="connection to vLLM failed"):
+        await provider(handler).complete(request())

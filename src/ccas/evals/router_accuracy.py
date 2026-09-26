@@ -36,7 +36,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ccas.llm.base import ProviderRateLimitedError, ProviderTimeoutError
+from ccas.llm.base import (
+    ProviderRateLimitedError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from ccas.mining.adopt import DERIVATION_SPLIT, split_of
 
 __all__ = [
@@ -127,7 +131,10 @@ def outcome_for_exception(exc: BaseException) -> RouterOutcome:
     on 429 alone let 19 of 40 rows in the first live run be recorded as wrong answers from
     a provider that had never answered.
     """
-    if isinstance(exc, ProviderRateLimitedError):
+    if isinstance(exc, ProviderRateLimitedError | ProviderUnavailableError):
+        # Both say outright that nothing was served -- a quota that refused, or a socket
+        # that never carried a response. The second was missing here until a live run
+        # produced one and it was scored as a misclassification (6.15).
         return RouterOutcome(unavailable=True, error=str(exc)[:120])
     if isinstance(exc, ProviderTimeoutError):
         return RouterOutcome(timed_out=True, error=str(exc)[:120])

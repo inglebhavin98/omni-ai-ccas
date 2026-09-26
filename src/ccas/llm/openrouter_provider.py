@@ -158,8 +158,13 @@ class OpenRouterProvider(LLMProvider):
     async def _post(self, payload: dict[str, Any], timeout_ms: int) -> httpx.Response:
         """POST with backoff on the transient failures a free tier actually produces.
 
-        Two of them, and both must be *converted* rather than allowed to escape: a raw
-        httpx error propagating out of a graph node takes the whole call down.
+        Every one of them must be *converted* rather than allowed to escape: a raw httpx
+        error propagating out of a graph node takes the whole call down. This docstring
+        said "two of them" and the code caught two, which left the rest of
+        ``httpx.TransportError`` -- a socket the vendor drops part-way through a response
+        -- arriving at the caller as a bare ``httpx.ReadError``. The live Rule 6 parity
+        gate found it: one flaky row killed all eight, because the handler there matches
+        ``LLMProviderError`` and a transport error is not one.
         """
         model = str(payload.get("model") or "<unknown model>")
         last: httpx.Response | None = None
@@ -187,6 +192,15 @@ class OpenRouterProvider(LLMProvider):
                     ) from exc
                 await asyncio.sleep(self._backoff_ms * attempt / 1000)
                 continue
+            except httpx.TransportError as exc:
+                # Everything else the transport can fail with: a reset socket, a protocol
+                # violation, a pool that gave up. Not retried, unlike a timeout -- this
+                # can land *after* the request reached the vendor, and replaying it would
+                # risk asking twice for something that already happened once. Nothing
+                # usable came back, so it is unavailable rather than wrong (ADR-0014).
+                raise ProviderUnavailableError(
+                    f"connection to openrouter failed: {type(exc).__name__}"
+                ) from exc
 
             if response.status_code not in _RETRYABLE_STATUS:
                 return response
