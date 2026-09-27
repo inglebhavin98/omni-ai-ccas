@@ -1,0 +1,8 @@
+{
+  "name": "omni-ai-ccas-browser-tests",
+  "private": true,
+  "description": "Dev-only Playwright harness for the workbench console (ADR-0022). Nothing here ships.",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

@@ -217,7 +217,12 @@ async function send() {
   } catch (e) {
     $("hint").textContent = e.message;
   } finally {
-    $("send").disabled = false; $("say").focus();
+    // Re-enable only if the (possibly new) session is still open -- render() has
+    // already disabled both for a terminal one, and re-enabling unconditionally made
+    // a dead button look live again.
+    $("say").disabled = session?.terminal ?? false;
+    $("send").disabled = session?.terminal ?? false;
+    $("say").focus();
   }
 }
 

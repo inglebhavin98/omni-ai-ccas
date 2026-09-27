@@ -7,7 +7,7 @@
 UV := uv run --frozen
 UVX := uv
 
-.PHONY: help install check fmt lint types test test-fast latency security voice evals eval-router workbench clean
+.PHONY: help install check fmt lint types test test-fast latency security voice evals eval-router workbench browser clean
 
 help:  ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -41,6 +41,17 @@ security:  ## zero-leakage + domain-agnosticism gates (Rules 1 & 2)
 
 workbench:  ## interactive console at http://127.0.0.1:8000 (loopback only)
 	$(UV) uvicorn ccas.api.main:create_app --factory --host 127.0.0.1 --port 8000 --reload
+
+browser:  ## browser tests for the console (ADR-0022, dev-only; needs Node + npx)
+	@command -v npx >/dev/null 2>&1 || { echo "npx not found -- install Node.js to run the browser tests (dev-only, ADR-0022)"; exit 2; }
+	npm install --silent --no-fund --no-audit
+	@npx --yes playwright install chromium >/dev/null 2>&1 || true
+	@OPENROUTER_API_KEY= TYPESAFE_API_KEY= ANTHROPIC_API_KEY= \
+	  $(UV) uvicorn ccas.api.main:create_app --factory --host 127.0.0.1 --port 8765 --no-access-log & \
+	  server_pid=$$!; \
+	  trap 'kill $$server_pid 2>/dev/null' EXIT; \
+	  for i in $$(seq 1 60); do curl -sf http://127.0.0.1:8765/health >/dev/null && break; sleep 0.5; done; \
+	  npx --yes playwright test
 
 voice:  ## the frozen voice channel (ADR-0018). Must stay green before resuming voice
 	$(UV) pytest -m voice -q

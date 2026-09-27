@@ -31,3 +31,8 @@ self-refs/
 
 # Claude Code local state. Project-level config is committed deliberately, not by default.
 .claude/
+
+# Browser-test harness (ADR-0022) — Node artifacts stay out of the repo
+node_modules/
+test-results/
+playwright-report/
