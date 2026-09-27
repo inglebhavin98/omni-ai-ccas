@@ -5,9 +5,8 @@ living list. Delete or replace it once the next session has picked the work up.
 
 ## State
 
-Branch `spike/typesafe-jev-router`, uncommitted working tree (see the commit list below).
-Green: `ruff format --check`, `ruff check`, `mypy --strict` (143 files), pytest
-**1039 passed / 3 skipped**, `make browser` **3 passed**.
+Branch `spike/typesafe-jev-router`, pushed. Green: `ruff format --check`, `ruff check`,
+`mypy --strict` (143 files), pytest **1041 passed / 3 skipped**, `make browser` **3 passed**.
 
 ## Do this first
 
@@ -30,9 +29,18 @@ JSON — truncated twice) to `nemotron-3-super-120b-a12b` primary +
 
 **First live suite run** (`scripts/run_evals.py`, 2026-09-27): 17/30 measured, 13
 unmeasured (429s). **The 6.12 rubric gap reproduces live:** faithfulness 0.00 vs 0.00
-(+0.00) — the judge cannot tell a grounded refusal from a hallucination under the current
-rubric; task_success separates (+0.67); policy_adherence does not. The faithfulness rubric
-rewrite is the blocking experiment (6.12 has the numbers).
+(+0.00) — the judge cannot tell a grounded refusal from a hallucination under the old
+rubric; task_success separates (+0.67); policy_adherence does not.
+
+**Faithfulness rubric rewritten (the 6.12 blocking experiment, done):** the top level now
+names assertion-free replies — refusals, corrections, handovers that invent nothing — as
+fully faithful, and the instruction says support is judged "not completeness". Three
+fixture labels were contestable and are fixed at the source: `planted_wrong_order`
+("signed for at the door" from no tool result), `hc_planted_dead_end` ("member portal" no
+tool returned), and `planted_wrong_request` ("the reference on your confirmation email") —
+the third found by a **new mechanical pin** that re-runs the relabel audit on every suite
+run (a reply labelled faithful may cite no date, amount or named destination its tool
+block does not contain).
 
 **Agent-desktop surface shipped** (tech-spec §3.2a, was "planned"): `GET
 /v1/handoffs/{id}`, `GET /v1/sessions/{id}/handoff`, `WS /v1/ws/copilot/{session_id}`.
@@ -55,10 +63,10 @@ handoff fetch → copilot WS → judge, 3 LLM calls.
 
 | what | why | blocked on |
 |---|---|---|
+| **Re-run the judge suite under rubric v2** (6.12) | the rewrite is committed and green offline; whether faithfulness now separates is the open question. First attempt after the rewrite: **30 attempted, 30 unmeasured, 0 errors** — the daily cap, spent by the morning run. Unmeasured, not wrong (ADR-0014) | the 00:00 UTC reset. One command: `.venv/bin/python scripts/run_evals.py --out data/interim/judge_suite_rubric_v2.json` |
 | **Review and merge PR #1** | open since 2026-09-19 | a reviewer |
-| **Rewrite the faithfulness rubric** (6.12) | the judge cannot separate grounded refusals from hallucinations; live numbers confirm the spike | the rewrite + a second label reader; a re-run costs 30 quota |
-| **Widen the router eval** (6.8) / chat cutoff (6.11) | 26 measured rows is ~1 per intent | quota — 13/30 judge cases went unserved this session; the cap bites fast |
-| **Parity gate re-run** (6.7) | 16 calls; plumbing fixed, numbers wanted | quota headroom |
+| **Parity gate re-run** (6.7) | 16 calls; plumbing fixed, numbers wanted | quota headroom — after the 6.12 re-run |
+| **Widen the router eval** (6.8) / chat cutoff (6.11) | 26 measured rows is ~1 per intent | quota — the cap bites fast; ~27 calls left this session were consumed probing the reset |
 | **Docker compose verify** (9.20) | never started | a machine with Docker |
 
 ## Known-unknown worth stating plainly
