@@ -48,6 +48,7 @@ make test-fast    # unit only, no integration
 make security     # Rules 1 & 2
 make latency      # Rule 3
 make evals        # Rule 6 parity gate (Ragas/DeepEval suites land with Module 6)
+make browser      # Playwright specs over the empty-key console (ADR-0022, needs Node)
 ```
 
 ### Test layout
@@ -146,7 +147,7 @@ counts, never content.
 
 ```python
 log.info("redaction.done", entity_counts={"person": 2, "phone": 1}, elapsed_us=840)  # ok
-log.info("turn.received", utterance=text)                                            # raises
+log.info("turn.received", utterance=text)  # raises
 ```
 
 ### Redaction — `src/ccas/redaction/`
@@ -301,6 +302,11 @@ developing a pack:
 
 With no provider the session still opens; routing escalates honestly rather than
 pretending to understand. Same principle as a pending demo stage: never fabricate.
+
+The browser specs (`make browser`, ADR-0022) run against exactly that empty-key server in
+one shell — the Makefile target strips the LLM keys, waits for `/health`, runs Playwright,
+and kills the server on exit. A backgrounded server does not survive the shell that
+started it, which is why the target owns the whole lifecycle.
 
 It exposes session state, so it binds to loopback and is not a production endpoint.
 

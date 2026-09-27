@@ -425,9 +425,10 @@ what must not contain a caller's name.
 ```python
 class LLMProvider(ABC):
     name: ProviderName
+
     async def complete(self, request: LLMRequest) -> LLMResponse: ...
-    def      stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]: ...
-    async def structured(self, request: LLMRequest) -> LLMResponse: ...   # parsed is schema-valid
+    def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]: ...
+    async def structured(self, request: LLMRequest) -> LLMResponse: ...  # parsed is schema-valid
     async def healthy(self) -> bool: ...
     async def aclose(self) -> None: ...
 ```
@@ -470,15 +471,21 @@ layer that could not also reach a model.
 With no provider configured the session still opens and redaction, tools and policies all
 work; routing escalates honestly rather than pretending to understand.
 
-### 3.2a Agent-desktop surface (Phase 6, planned)
+### 3.2a Agent-desktop surface (Phase 6, shipped 2026-09-27)
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/v1/handoffs/{id}` | fetch a `HandoffContext` for an agent desktop |
+| `GET` | `/v1/sessions/{id}/handoff` | the handoff retained for a specific session |
 | `WS` | `/v1/ws/copilot/{session_id}` | live redacted transcript + suggestions |
 
 Every response body is a `schemas/` model. `correlation_id` is echoed on every response
 and present on every log line.
+
+A session that reaches a terminal, escalated state retains its handoff (`SessionManager`
+rebuilds it through the pure `build_handoff`) so the agent-desktop fetch works after the
+session closes; the copilot socket closes with code 4000 on an unknown session and polls
+at 0.5 s.
 
 ### 3.2b Tool layer (Phase 4)
 
