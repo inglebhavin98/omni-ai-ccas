@@ -7,6 +7,8 @@ the hybrid swappable (CLAUDE.md Rule 6).
 
 from __future__ import annotations
 
+from pydantic import SecretStr
+
 from ccas.config.settings import Settings
 from ccas.llm.anthropic_provider import AnthropicProvider
 from ccas.llm.base import LLMProvider, ProviderUnavailableError
@@ -14,7 +16,26 @@ from ccas.llm.openrouter_provider import OpenRouterProvider
 from ccas.llm.vllm_provider import VLLMProvider
 from ccas.schemas.llm import ModelBinding, ProviderName
 
-__all__ = ["AUTH_HELP", "build_provider"]
+__all__ = ["AUTH_HELP", "build_provider", "key_is_set"]
+
+
+def key_is_set(key: object) -> bool:
+    """True only when a credential is present *and* non-empty.
+
+    An empty string is not a credential. ``OPENROUTER_API_KEY=`` in .env or the shell
+    otherwise reads as configured, readiness reports a provider that does not exist,
+    and every call then fails at the vendor with a 401 that looks like a broken key
+    rather than a missing one -- which is exactly how an exposed key got "verified" as
+    live by its 429s (resume note, 2026-09-19)."""
+    return bool(key is not None and getattr(key, "get_secret_value", lambda: key)())
+
+
+def _key_text(key: SecretStr | None) -> str:
+    """Precondition: ``key_is_set(key)``. Kept apart from it because narrowing through a
+    helper is invisible to mypy -- the assert is what proves the branch to --strict."""
+    assert key is not None
+    return key.get_secret_value()
+
 
 AUTH_HELP = """\
 no Anthropic credentials found. Any one of these works:
@@ -29,13 +50,13 @@ Or run against the self-hosted binding instead: --provider vllm\
 def build_provider(binding: ModelBinding, settings: Settings) -> LLMProvider:
     if binding.provider is ProviderName.OPENROUTER:
         key = settings.openrouter_api_key
-        if key is None:
+        if not key_is_set(key):
             raise ProviderUnavailableError(
                 f"node {binding.node!r} is bound to openrouter but OPENROUTER_API_KEY "
-                "is unset; add it to .env or export it"
+                "is unset or empty; add it to .env or export it"
             )
         return OpenRouterProvider(
-            api_key=key.get_secret_value(),
+            api_key=_key_text(key),
             base_url=settings.openrouter_base_url,
             referer=settings.openrouter_referer,
             title=settings.openrouter_title,
