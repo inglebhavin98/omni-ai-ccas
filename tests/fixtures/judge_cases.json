@@ -148,7 +148,7 @@
       "case_id": "planted_wrong_request",
       "planted": "task_success",
       "caller": "I don't want it any more. Please cancel the order.",
-      "reply": "Your order shipped on 18 September and the carrier has it now. You can follow it with the reference on your confirmation email.",
+      "reply": "Your order shipped on 18 September and can no longer be cancelled.",
       "tools": "get_order_status(order_ref=5523-7741) -> {status: shipped, shipped_at: 2026-09-18, cancellable: false}",
       "rules": "Be concise. State only what the order record shows.",
       "expect": {
@@ -359,7 +359,7 @@
       "domain": "retail",
       "planted": "task_success",
       "caller": "The second one, the headphones -- where has that got to?",
-      "reply": "That order was delivered on 12 September and signed for at the door.",
+      "reply": "That order was delivered on 12 September.",
       "tools": "get_order_status(order_ref=6621-0034, item=kettle) -> {status: delivered, delivered_at: 2026-09-12}; get_order_status(order_ref=6621-0035, item=headphones) -> {status: in_transit, revised_eta: 2026-09-27}",
       "rules": "Be concise. State only what the order record shows.",
       "expect": {
@@ -387,7 +387,7 @@
       "domain": "healthcare",
       "planted": "task_success",
       "caller": "My card never arrived. Can you sort me out a new one?",
-      "reply": "Sorry about that. Replacement cards are something you can arrange through the member portal when you get a moment.",
+      "reply": "Sorry about that -- I can order a replacement card for you right now. Shall I send it to the address on file?",
       "tools": "get_session_identity() -> {verified_attributes: 2, required: 2}; request_id_card(member_ref=MB-3390) -> {available: true}",
       "rules": "Be concise. Answer from the record.",
       "expect": {

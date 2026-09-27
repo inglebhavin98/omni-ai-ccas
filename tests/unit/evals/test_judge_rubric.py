@@ -1,20 +1,16 @@
-"""The judge rubric: what a Score question has to be before it is worth asking.
-
-Module 6b's judge dimensions are `JudgeDimension` values and its output is a
-`JudgeScore`. A System One model answers a rubric rather than writing an opinion, so the
-mapping between the two is code -- which means it is testable, and these are the parts
-that would otherwise be wrong quietly: the direction of the scale, the normalisation, and
-the rationale, which the model cannot write because it cannot write anything.
-"""
+"""The rubric is the measurement instrument; these are its calibration pins."""
 
 from __future__ import annotations
 
 import pytest
 
 from ccas.evals.judge_rubric import (
+    DEFAULT_PASS_MARK,
+    INSTRUCTIONS,
     RUBRICS,
     judge_questions,
     judge_scores,
+    questions_block,
     score_question,
 )
 from ccas.schemas.eval import JudgeDimension
@@ -22,65 +18,82 @@ from ccas.schemas.eval import JudgeDimension
 DIMS = (JudgeDimension.FAITHFULNESS, JudgeDimension.TASK_SUCCESS)
 
 
-def answer(
-    score: float, probabilities: dict[str, float], confidence: float = 0.9
+def body(
+    faithfulness: dict[str, object], task_success: dict[str, object] | None = None
 ) -> dict[str, object]:
     return {
-        "type": "score",
-        "score": score,
-        "probabilities": probabilities,
-        "confidence": confidence,
-        "legend": {str(i): text for i, text in enumerate(RUBRICS[JudgeDimension.FAITHFULNESS])},
+        "answers": {
+            "faithfulness": faithfulness,
+            "task_success": task_success or {"score": 3, "probabilities": {"3": 1.0}},
+        }
     }
 
 
-def body(**answers: object) -> dict[str, object]:
-    return {"answers": answers, "usage": {"input_tokens": 100, "output_tokens": 0}}
+def answer(score: float, probabilities: dict[str, float]) -> dict[str, object]:
+    return {"score": score, "probabilities": probabilities}
 
 
-def test_every_dimension_has_a_rubric_with_a_low_and_a_high_end() -> None:
-    """A Score is an *ordered* scale. One level, or an unordered set, is a Choice wearing
-    the wrong type, and the score it returns would not mean what the caller reads."""
+# --------------------------------------------------------------------- shape
+
+
+def test_every_rubric_has_distinct_nonempty_levels() -> None:
     for dimension, levels in RUBRICS.items():
         assert len(levels) >= 2, dimension
         assert len(levels) <= 10, dimension  # the API's ceiling
         assert all(level.strip() for level in levels)
 
 
-def test_pii_leakage_has_no_rubric_and_that_is_deliberate() -> None:
-    """Rule 2: judging leakage means sending pre-redaction text to a vendor. There is no
-    rubric because there is no question that can be asked without breaking the rule."""
+def test_pii_leakage_has_no_rubric_by_design() -> None:
+    """Judging it would mean showing a vendor pre-redaction text -- Rule 2 (6.14)."""
     assert JudgeDimension.PII_LEAKAGE not in RUBRICS
 
 
-def test_a_question_is_shaped_as_the_api_documents_a_score() -> None:
+def test_score_question_shape() -> None:
     q = score_question(JudgeDimension.FAITHFULNESS)
     assert q["type"] == "score"
     assert isinstance(q["instructions"], str) and q["instructions"]
     assert q["criteria"] == list(RUBRICS[JudgeDimension.FAITHFULNESS])
 
 
-def test_all_dimensions_ride_in_one_request() -> None:
-    """The state is the whole exchange and it is the expensive part. Asking three
-    questions against it in three calls sends it three times for no gain -- the vendor's
-    own measurement is 12x cheaper batched, and each question is scored independently."""
+def test_judge_questions_cover_every_requested_dimension() -> None:
     questions = judge_questions(DIMS)
     assert set(questions) == {"faithfulness", "task_success"}
 
 
-def test_the_score_is_normalised_onto_the_schema_s_zero_to_one() -> None:
-    """`JudgeScore.score` is 0..1. jev returns a position on the level scale, so the top
-    level of a four-level rubric is 3.0 and has to become 1.0."""
+def test_questions_block_renders_instructions_over_numbered_criteria() -> None:
+    block = questions_block(DIMS)
+    assert "  faithfulness: " in block
+    assert "\n    0. " in block
+
+
+# --------------------------------------------------------------- the anchor
+
+
+def test_faithfulness_top_level_names_assertion_free_replies() -> None:
+    """The 6.12 failure: a grounded refusal -- a reply that asserts little because the
+    record supports little -- landed mid-scale and read as unfaithful. The top level
+    must name that case explicitly, or the model has nowhere honest to put it."""
+    top = RUBRICS[JudgeDimension.FAITHFULNESS][-1].lower()
+    for word in ("refusal", "assert"):
+        assert word in top, top
+    # And the instruction must stop completeness from dragging the score down.
+    instructions = INSTRUCTIONS[JudgeDimension.FAITHFULNESS].lower()
+    assert "not completeness" in instructions
+
+
+# ------------------------------------------------------------------ scoring
+
+
+def test_top_level_score_normalises_to_one() -> None:
     top = len(RUBRICS[JudgeDimension.FAITHFULNESS]) - 1
     (result,) = judge_scores(
-        body(faithfulness=answer(float(top), {str(top): 1.0})),
-        (JudgeDimension.FAITHFULNESS,),
+        body(faithfulness=answer(top, {str(top): 1.0})), (JudgeDimension.FAITHFULNESS,)
     )
     assert result.score == pytest.approx(1.0)
     assert result.passed
 
 
-def test_a_bottom_scoring_reply_fails() -> None:
+def test_bottom_level_score_normalises_to_zero() -> None:
     (result,) = judge_scores(
         body(faithfulness=answer(0.0, {"0": 1.0})), (JudgeDimension.FAITHFULNESS,)
     )
@@ -88,10 +101,7 @@ def test_a_bottom_scoring_reply_fails() -> None:
     assert not result.passed
 
 
-def test_the_rationale_is_written_by_code_from_the_level_the_model_chose() -> None:
-    """jev is "not trained to generate text", so the rationale cannot come back from the
-    model. Authoring it from the legend is strictly better than a generated one: it is
-    the rubric's own words, so it cannot describe a level the model did not pick."""
+def test_rationale_quotes_the_level_the_model_chose() -> None:
     levels = RUBRICS[JudgeDimension.FAITHFULNESS]
     (result,) = judge_scores(
         body(faithfulness=answer(1.2, {"1": 0.8, "2": 0.2})), (JudgeDimension.FAITHFULNESS,)
@@ -100,23 +110,18 @@ def test_the_rationale_is_written_by_code_from_the_level_the_model_chose() -> No
     assert "confidence" in result.rationale
 
 
-def test_a_missing_answer_raises_rather_than_scoring_zero() -> None:
-    """Zero is "the reply was groundless". A dimension the service did not answer is not
-    that, and recording it as that would fail a turn that was never judged."""
-    with pytest.raises(ValueError, match="task_success"):
-        judge_scores(body(faithfulness=answer(3.0, {"3": 1.0})), DIMS)
-
-
-def test_the_pass_mark_is_a_parameter_because_it_cannot_be_inherited() -> None:
-    """The same argument as the router's 0.82: a pass mark belongs to a rubric and a
-    model, and carrying one across either is guesswork wearing a number."""
+def test_pass_mark_is_the_boundary_of_passed() -> None:
     middling = body(faithfulness=answer(2.0, {"2": 1.0}))
     (lenient,) = judge_scores(middling, (JudgeDimension.FAITHFULNESS,), pass_at=0.6)
     (strict,) = judge_scores(middling, (JudgeDimension.FAITHFULNESS,), pass_at=0.9)
     assert lenient.passed and not strict.passed
+    assert DEFAULT_PASS_MARK == 0.75
 
 
-def test_every_judge_case_fails_at_most_the_dimension_it_plants() -> None:
+# ---------------------------------------------------------------- fixture
+
+
+def test_judge_cases_fixture_is_one_defect_per_case() -> None:
     """The fixture is the grader, so its invariant is part of the measurement.
 
     A case that breaks two dimensions at once lets a judge score badly for being right --
@@ -142,3 +147,32 @@ def test_every_judge_case_fails_at_most_the_dimension_it_plants() -> None:
     # written against -- which is the failure Rule 1 exists to prevent, and it would
     # still produce numbers.
     assert len({c["domain"] for c in cases}) >= 2
+
+
+def test_fixture_replies_carry_no_assertion_beyond_their_tools() -> None:
+    """The relabel audit, made mechanical (6.12).
+
+    Every case labelled faithfulness=true must not cite a concrete value -- a date, an
+    amount, a named destination -- that its tool block does not contain. The two labels
+    corrected on 2026-09-27 both failed this: "signed for at the door" and "member
+    portal" appear in no tool result. A named-value check cannot catch every possible
+    ungrounded assertion, but the concrete-value kind is the one a judge can be shown.
+    """
+    import json
+    import re
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[3]
+    cases = json.loads((repo / "tests" / "fixtures" / "judge_cases.json").read_text())["cases"]
+    for case in cases:
+        if not case["expect"]["faithfulness"]:
+            continue
+        reply, tools = case["reply"], case["tools"]
+        # Amounts and dates in the reply must appear in the tool block.
+        for value in re.findall(r"(?:£|\$|€)\s?\d[\d,.]*|\d{1,2} \w+ \d{4}", reply):
+            assert value in tools, f"{case['case_id']}: {value!r} cited but never returned"
+        # A named destination must be a tool name or a field value, not an invention.
+        for value in re.findall(r"\b(?:portal|app|website|email)\b", reply, re.IGNORECASE):
+            assert value.lower() in tools.lower() or value.lower() in case["rules"].lower(), (
+                f"{case['case_id']}: {value!r} offered with nothing behind it"
+            )

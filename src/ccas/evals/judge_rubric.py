@@ -50,10 +50,12 @@ RUBRICS: dict[JudgeDimension, tuple[str, ...]] = {
         "result and no retrieved passage.",
         "The reply is broadly supported, but at least one specific value, status or date "
         "in it appears nowhere in the tool results.",
-        "Every specific value in the reply appears in a tool result, but the reply adds a "
-        "general assertion the results do not establish.",
-        "Every statement in the reply is traceable to a tool result or a retrieved passage, "
-        "and the reply adds nothing beyond them.",
+        "Every specific value in the reply appears in a tool result, but the reply also "
+        "states something general the results do not establish.",
+        "Every statement in the reply is traceable to a tool result or a retrieved "
+        "passage. A reply that says only what the record shows -- including a refusal, a "
+        "correction or a handover that invents nothing -- sits here: asserting little is "
+        "not a faithfulness defect.",
     ),
     JudgeDimension.TASK_SUCCESS: (
         "The caller's request was neither carried out nor passed to anyone who could carry it out.",
@@ -77,8 +79,9 @@ RUBRICS: dict[JudgeDimension, tuple[str, ...]] = {
 INSTRUCTIONS: dict[JudgeDimension, str] = {
     JudgeDimension.FAITHFULNESS: (
         "Rate how well the assistant's reply is supported by the tool results it was "
-        "given. Judge support only -- not tone, and not whether the caller got what they "
-        "wanted."
+        "given. Judge support only -- not tone, not completeness, and not whether the "
+        "caller got what they wanted. A reply that asserts little because the record "
+        "supports little is fully faithful."
     ),
     JudgeDimension.TASK_SUCCESS: (
         "Rate how far the exchange got the caller's request. A clean handover to a human "
