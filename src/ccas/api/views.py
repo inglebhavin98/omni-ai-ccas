@@ -10,9 +10,10 @@ from typing import Any
 
 from ccas.api.schemas import SessionSnapshot
 from ccas.api.sessions import SessionHandle
+from ccas.schemas.handoff import HandoffContext
 from ccas.schemas.session import SessionState
 
-__all__ = ["snapshot_of", "tool_record_view"]
+__all__ = ["handoff_of", "snapshot_of", "tool_record_view"]
 
 
 def tool_record_view(record: Any) -> dict[str, Any]:
@@ -28,6 +29,50 @@ def tool_record_view(record: Any) -> dict[str, Any]:
         "safe_for_model": result.safe_for_model,
         "data": result.data if result.safe_for_model else {},
         "redacted_entities": result.redaction.entity_counts,
+    }
+
+
+def handoff_of(handoff: HandoffContext) -> dict[str, Any]:
+    """The agent-desktop view of a CTI payload.
+
+    Serialising the model directly would also be correct -- the contract layer already
+    guarantees egress-cleanliness -- but the desktop reads a few derived things (the
+    identity's attributes, the queue skills) and skips the internals it has no use for,
+    so the shape is named here rather than implied.
+    """
+    return {
+        "handoff_id": handoff.handoff_id,
+        "session_id": handoff.session_id,
+        "domain": handoff.domain,
+        "schema_version": handoff.schema_version,
+        "reason": handoff.reason.value,
+        "urgency": handoff.urgency.value,
+        "target_queue": handoff.target_queue,
+        "required_skills": list(handoff.required_skills),
+        "intent_path": list(handoff.intent_path),
+        "intent_confidence": handoff.intent_confidence,
+        "summary": handoff.summary.text,
+        "identity": (
+            {
+                "level": handoff.identity.level.value,
+                "method": handoff.identity.method,
+                "attributes": {k: v.text for k, v in handoff.identity.attributes.items()},
+            }
+            if handoff.identity
+            else None
+        ),
+        "collected_slots": {name: slot.raw.text for name, slot in handoff.collected_slots.items()},
+        "transcript": [
+            {
+                "index": turn.index,
+                "speaker": turn.speaker.value,
+                "text": turn.content.text,
+            }
+            for turn in handoff.transcript
+        ],
+        "tool_trace": [tool_record_view(r) for r in handoff.tool_trace],
+        "cti_attributes": {k: v.text for k, v in handoff.cti_attributes.items()},
+        "created_at": handoff.created_at.isoformat(),
     }
 
 

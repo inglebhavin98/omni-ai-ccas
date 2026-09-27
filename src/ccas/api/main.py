@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ccas.api.routes import build_desktop_router, mount_copilot_ws
 from ccas.api.schemas import (
     CreateSessionRequest,
     InvokeToolRequest,
@@ -57,6 +58,10 @@ def build_app(manager: SessionManager | None = None) -> FastAPI:
         description="Development console for the agentic mesh. Loopback only.",
         lifespan=lifespan,
     )
+
+    # Agent-desktop surface (tech-spec 3.2a): handoff fetch + copilot stream.
+    app.include_router(build_desktop_router(sessions))
+    mount_copilot_ws(app, sessions)
 
     # ------------------------------------------------------------- readiness
 

@@ -12,6 +12,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from ccas.api.handoffs import HandoffStore
 from ccas.config.domain_loader import DomainPackNotFoundError, available_domains, load_domain
 from ccas.config.settings import Settings
 from ccas.graph.assembly import build_graph
@@ -22,9 +23,12 @@ from ccas.graph.router import IntentRouter
 from ccas.llm.base import LLMProvider, LLMProviderError
 from ccas.llm.bindings import BindingRegistry, load_bindings
 from ccas.llm.factory import build_provider
+from ccas.nodes.escalate import build_handoff
 from ccas.observability.logging import get_logger
 from ccas.observability.tracing import current_trace_context
-from ccas.schemas.common import Channel, Speaker, VerificationLevel
+from ccas.policies.base import PolicyAction
+from ccas.schemas.common import Channel, Speaker, Urgency, VerificationLevel
+from ccas.schemas.escalation import EscalationDecision, HandoffReason
 from ccas.schemas.session import CallerContext, SessionState, Turn
 
 __all__ = ["SessionHandle", "SessionManager", "SessionNotFoundError"]
@@ -75,6 +79,7 @@ class SessionManager:
         self._injected_provider = provider
         self._sessions: dict[str, SessionHandle] = {}
         self._provider_error: str | None = None
+        self.handoffs = HandoffStore()
 
     # ------------------------------------------------------------- readiness
 
@@ -198,6 +203,7 @@ class SessionManager:
         handle.state = await handle.graph.ainvoke(
             {"turns": [turn], "turn_index": index + 1}, handle.config
         )
+        self._retain_handoff(handle)
         LOG.info(
             "session.turn",
             correlation_id=session_id,
@@ -207,9 +213,51 @@ class SessionManager:
         )
         return handle
 
+    def _retain_handoff(self, handle: SessionHandle) -> None:
+        """Keep the CTI payload when a turn ends the session in escalation.
+
+        The escalate node builds a ``HandoffContext`` and returns, and nothing kept a
+        reference -- so there was nothing for ``GET /v1/handoffs/{id}`` to serve. The
+        payload is rebuilt here through the same pure function the node uses, from the
+        same state: no second code path that could disagree with what the caller heard.
+        A session that ended without escalation leaves nothing behind.
+        """
+        state = handle.snapshot()
+        if not (state.terminal and state.escalated):
+            return
+        decision = state.escalation or _decision_from_state(handle, state)
+        handoff = build_handoff(handle.ctx, state, decision)
+        self.handoffs.put(handoff)
+        LOG.info(
+            "handoff.retained",
+            correlation_id=state.session_id,
+            handoff_id=handoff.handoff_id,
+            reason=decision.reason.value,
+            triggered_by=decision.triggered_by,
+        )
+
     def drop(self, session_id: str) -> None:
         """Discard a session and, with it, its vault."""
         self._sessions.pop(session_id, None)
+
+
+def _decision_from_state(handle: SessionHandle, state: SessionState) -> EscalationDecision:
+    """Fallback for a terminal state whose escalation verdict was never written.
+
+    Same re-derivation the escalate node does (policies are pure), kept in step with it.
+    If even that yields nothing decisive, the reason is named honestly rather than
+    guessed: an agent desktop showing a fabricated reason is worse than a plain one.
+    """
+    verdict = handle.ctx.policies.evaluate(state, handle.ctx.policy_context(state))
+    if verdict.action is PolicyAction.ESCALATE and verdict.reason is not None:
+        return verdict.to_escalation(at_turn=state.turn_index)
+    return EscalationDecision(
+        reason=HandoffReason.POLICY,
+        triggered_by=verdict.policy,
+        at_turn=state.turn_index,
+        urgency=Urgency.NORMAL,
+        detail=verdict.detail,
+    )
 
 
 class _UnavailableProvider(LLMProvider):
