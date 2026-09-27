@@ -104,14 +104,23 @@ bindings:
       stream: false
 
   # Async, off the hot path, 5% sample.
+  # Rebound 2026-09-27 after the first end-to-end run: the previous primary
+  # (inclusionai/ling-3.0-flash-fin:free, prompt mode) reasons inline and spent its whole
+  # 2048-token allowance before reaching the JSON -- not a quota, a structural mismatch
+  # between prompt mode and a reasoning model on a three-question request. Both variants
+  # now declare response_format, per the 2026-09-26 live probes (super answered a
+  # schema-constrained request with reasoning on in 700 ms).
   judge:
     openrouter:
-      model: inclusionai/ling-3.0-flash-fin:free
+      model: nvidia/nemotron-3-super-120b-a12b:free
       timeout_ms: 120000
-      structured_mode: prompt
+      structured_mode: response_format
       reasoning: true
       temperature: 0.0
-      max_tokens: 2048
+      # Three rubrics + one exchange take real reasoning; a 2048 ceiling was exhausted
+      # by reasoning tokens alone on the first live run (2026-09-27), truncating before
+      # any JSON. 8192 leaves room to think and still emit the compact answers object.
+      max_tokens: 8192
       stream: false
     openrouter_alt:
       provider: openrouter
@@ -120,7 +129,7 @@ bindings:
       structured_mode: response_format
       reasoning: true
       temperature: 0.0
-      max_tokens: 2048
+      max_tokens: 8192
       stream: false
 
   # Post-call CRM summary. Not on the call path.

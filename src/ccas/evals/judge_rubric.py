@@ -32,6 +32,7 @@ __all__ = [
     "RUBRICS",
     "judge_questions",
     "judge_scores",
+    "questions_block",
     "score_question",
 ]
 
@@ -119,6 +120,17 @@ def judge_questions(dimensions: Sequence[JudgeDimension]) -> dict[str, dict[str,
     if not dimensions:
         raise ValueError("a judge with no dimensions judges nothing")
     return {d.value: score_question(d) for d in dimensions}
+
+
+def questions_block(dimensions: Sequence[JudgeDimension]) -> str:
+    """The questions rendered as prompt text: instructions over numbered criteria."""
+    lines: list[str] = []
+    for dimension, question in judge_questions(dimensions).items():
+        raw = question.get("criteria", ())
+        criteria = list(raw) if isinstance(raw, list | tuple) else []
+        numbered = "\n".join(f"    {i}. {c}" for i, c in enumerate(criteria))
+        lines.append(f"  {dimension}: {question.get('instructions', '')}\n{numbered}")
+    return "\n".join(lines)
 
 
 def judge_scores(
