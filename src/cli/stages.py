@@ -183,52 +183,10 @@ def _stage_normalize(ctx: StageContext) -> StageResult:
 
 
 def _stage_intent(ctx: StageContext) -> StageResult:
-    if not ctx.domain.has_taxonomy:
-        return _pending(
-            "Intent detection",
-            "orchestration.router",
-            3,
-            "taxonomy        not mined yet for this pack",
-            "mine it         uv run python scripts/ingest.py --source aixblock "
-            f"--domain {ctx.domain.domain}",
-            f"                uv run python scripts/mine_taxonomy.py --domain {ctx.domain.domain}",
-            "needs           the AIxBlock corpus in data/raw/aixblock (ADR-0004: it is",
-            "                the only corpus a taxonomy may be mined from)",
-        )
+    """Taxonomy summary + live routing. The LLM half lives in ``stages_llm``."""
+    from cli.stages_llm import intent_stage
 
-    taxonomy = ctx.domain.taxonomy
-    leaves = taxonomy.leaves()
-    quadrants: dict[str, int] = {}
-    for node in leaves:
-        key = node.automation.quadrant.value
-        quadrants[key] = quadrants.get(key, 0) + 1
-
-    lines = [
-        f"taxonomy        {taxonomy.taxonomy_id}  v{taxonomy.version}",
-        f"mined by        {taxonomy.embedding_model} -> {taxonomy.clusterer} "
-        f"-> {taxonomy.labeler_model}",
-        f"nodes           {len(taxonomy.nodes)}  ({len(leaves)} leaves)",
-        (
-            f"coverage        {taxonomy.coverage:.1%}  (noise {taxonomy.noise_ratio:.1%})"
-            if taxonomy.coverage is not None
-            else "coverage        n/a (adopted, nothing was clustered)"
-        ),
-        f"quadrants       {quadrants}",
-        f"route threshold {ctx.domain.pack.confidence.route}",
-        "",
-        "  routing itself lands in phase 4; this stage shows what it will route into",
-    ]
-    for node in sorted(taxonomy.nodes, key=lambda n: n.intent_id)[:8]:
-        indent = "  " * (node.level - 1)
-        lines.append(
-            f"  {indent}{node.intent_id:<40} {node.volume.share_of_total:>6.1%}  "
-            f"{node.automation.quadrant.value}"
-        )
-    if len(taxonomy.nodes) > 8:
-        lines.append(f"  ... and {len(taxonomy.nodes) - 8} more")
-    return StageResult(
-        "Intent detection", "orchestration.router", StageStatus.PENDING, lines, phase=4
-    )
+    return intent_stage(ctx)
 
 
 def _stage_tool(ctx: StageContext) -> StageResult:
@@ -390,6 +348,13 @@ def _stage_copilot(ctx: StageContext) -> StageResult:
     return StageResult("Agent copilot", "copilot.crm", StageStatus.LIVE, lines)
 
 
+def _stage_judge(ctx: StageContext) -> StageResult:
+    """Grade the exchange with the M6b judge (one LLM call when configured)."""
+    from cli.stages_llm import judge_stage
+
+    return judge_stage(ctx)
+
+
 def _stage_latency(ctx: StageContext) -> StageResult:
     budget = load_budget(ctx.config_dir / "latency_budget.yaml")
     stages = budget.stages.as_dict()
@@ -410,6 +375,7 @@ def build_pipeline() -> tuple[Stage, ...]:
         Stage("Agentic mesh", "graph.assembly", _stage_tool),
         Stage("Voice engine", "voice.session", _stage_voice),
         Stage("Agent copilot", "copilot.crm", _stage_copilot),
+        Stage("Judge", "evals.judge", _stage_judge),
         Stage("Latency budget", "config.budget", _stage_latency),
     )
 
